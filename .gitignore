@@ -1,0 +1,51 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Test artifacts
+test-*/
+artifacts/
+*.test
+
+# Node modules (if testing with node)
+node_modules/
+
+# Python cache (if testing with python)
+__pycache__/
+*.pyc
+*.pyo
+
+# Rust target (if testing with Rust)
+target/
+Cargo.lock
+
+# Go build artifacts (if testing with Go)
+*.exe
+*.dll
+*.so
+*.dylib

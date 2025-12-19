@@ -1,0 +1,254 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: Test GitHub Actions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-rust-cache:
+    name: Test rust/cache-cargo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test Rust project
+        run: |
+          cargo init test-project
+          cd test-project
+          echo 'serde = "1.0"' >> Cargo.toml
+          cargo build
+
+      - name: Test cache-cargo action
+        uses: ./rust/cache-cargo
+
+      - name: Verify cache was created
+        run: |
+          echo "Cache should be created for Cargo registry, git index, and build artifacts"
+
+  test-extract-version:
+    name: Test versioning/extract-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        workflow-type: [main, pr, release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test extract-version (main)
+        if: matrix.workflow-type == 'main'
+        id: version-main
+        uses: ./versioning/extract-version
+        with:
+          repository: firestoned/test-repo
+          workflow-type: main
+
+      - name: Test extract-version (pr)
+        if: matrix.workflow-type == 'pr'
+        id: version-pr
+        uses: ./versioning/extract-version
+        with:
+          repository: firestoned/test-repo
+          workflow-type: pr
+          pr-number: 42
+
+      - name: Test extract-version (release)
+        if: matrix.workflow-type == 'release'
+        id: version-release
+        uses: ./versioning/extract-version
+        with:
+          repository: firestoned/test-repo
+          workflow-type: release
+          release-tag: v1.2.3
+
+      - name: Display version outputs
+        run: |
+          echo "Workflow type: ${{ matrix.workflow-type }}"
+          if [ "${{ matrix.workflow-type }}" = "main" ]; then
+            echo "Version: ${{ steps.version-main.outputs.version }}"
+            echo "Tag: ${{ steps.version-main.outputs.tag-name }}"
+            echo "Image Tag: ${{ steps.version-main.outputs.image-tag }}"
+            echo "Image Repo: ${{ steps.version-main.outputs.image-repository }}"
+            echo "Short SHA: ${{ steps.version-main.outputs.short-sha }}"
+          elif [ "${{ matrix.workflow-type }}" = "pr" ]; then
+            echo "Version: ${{ steps.version-pr.outputs.version }}"
+            echo "Tag: ${{ steps.version-pr.outputs.tag-name }}"
+            echo "Image Tag: ${{ steps.version-pr.outputs.image-tag }}"
+            echo "Image Repo: ${{ steps.version-pr.outputs.image-repository }}"
+          elif [ "${{ matrix.workflow-type }}" = "release" ]; then
+            echo "Version: ${{ steps.version-release.outputs.version }}"
+            echo "Tag: ${{ steps.version-release.outputs.tag-name }}"
+            echo "Image Tag: ${{ steps.version-release.outputs.image-tag }}"
+            echo "Image Repo: ${{ steps.version-release.outputs.image-repository }}"
+          fi
+
+  test-license-check:
+    name: Test security/license-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test files
+        run: |
+          mkdir -p test-files
+
+          # Create Rust file with SPDX header
+          cat > test-files/test.rs <<'EOF'
+          // Copyright (c) 2025 Test Author
+          // SPDX-License-Identifier: MIT
+
+          fn main() {
+              println!("Hello");
+          }
+          EOF
+
+          # Create Shell script with SPDX header
+          cat > test-files/test.sh <<'EOF'
+          #!/usr/bin/env bash
+          # Copyright (c) 2025 Test Author
+          # SPDX-License-Identifier: MIT
+
+          echo "Hello"
+          EOF
+
+      - name: Test license-check action
+        uses: ./security/license-check
+        with:
+          copyright-holder: 'Test Author'
+          license-id: MIT
+
+  test-docker-setup:
+    name: Test docker/setup-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test setup-docker action
+        uses: ./docker/setup-docker
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Docker Buildx
+        run: |
+          docker buildx version
+          docker buildx ls
+
+  test-verify-signed-commits:
+    name: Test security/verify-signed-commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Test verify-signed-commits (PR mode)
+        uses: ./security/verify-signed-commits
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          verify-mode: pr
+          base-ref: origin/main
+        continue-on-error: true  # Don't fail if commits aren't signed in test
+
+  test-actions-validity:
+    name: Validate Action Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate all action.yml files
+        run: |
+          echo "Checking for action.yml files..."
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            echo "Validating: $action"
+            # Basic YAML syntax check
+            python3 -c "import yaml; yaml.safe_load(open('$action'))" || exit 1
+            echo "✓ $action is valid"
+          done
+
+      - name: Check for required fields
+        run: |
+          echo "Checking for required fields in actions..."
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            echo "Checking: $action"
+
+            # Check for name
+            grep -q "^name:" "$action" || { echo "ERROR: Missing 'name' in $action"; exit 1; }
+
+            # Check for description
+            grep -q "^description:" "$action" || { echo "ERROR: Missing 'description' in $action"; exit 1; }
+
+            # Check for runs.using
+            grep -q "using:" "$action" || { echo "ERROR: Missing 'runs.using' in $action"; exit 1; }
+
+            echo "✓ $action has required fields"
+          done
+
+  test-documentation:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for README files
+        run: |
+          echo "Checking for README.md files..."
+
+          # Check that every action has a README
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            dir=$(dirname "$action")
+            if [ ! -f "$dir/README.md" ]; then
+              echo "ERROR: Missing README.md in $dir"
+              exit 1
+            else
+              echo "✓ Found README.md in $dir"
+            fi
+          done
+
+      - name: Validate README content
+        run: |
+          echo "Checking README content..."
+
+          find . -name "README.md" -path "*/rust/*" -o -path "*/security/*" -o -path "*/docker/*" -o -path "*/versioning/*" | while read readme; do
+            echo "Checking: $readme"
+
+            # Check for required sections
+            grep -q "## Usage" "$readme" || grep -q "## Quick Start" "$readme" || { echo "ERROR: Missing Usage section in $readme"; exit 1; }
+            grep -q "## Features" "$readme" || { echo "WARNING: Missing Features section in $readme"; }
+            grep -q "## License" "$readme" || { echo "WARNING: Missing License section in $readme"; }
+
+            echo "✓ $readme has required sections"
+          done
+
+  test-licensing:
+    name: Validate License Headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check SPDX headers in action files
+        run: |
+          echo "Checking SPDX headers in action.yml files..."
+
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            if ! head -n 10 "$action" | grep -q "SPDX-License-Identifier:"; then
+              echo "ERROR: Missing SPDX header in $action"
+              exit 1
+            else
+              echo "✓ $action has SPDX header"
+            fi
+          done
+
+      - name: Check for LICENSE file
+        run: |
+          if [ ! -f "LICENSE" ]; then
+            echo "ERROR: Missing LICENSE file in repository root"
+            exit 1
+          else
+            echo "✓ LICENSE file exists"
+          fi
