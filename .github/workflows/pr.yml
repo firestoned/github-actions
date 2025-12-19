@@ -29,6 +29,106 @@ jobs:
         run: |
           echo "Cache should be created for Cargo registry, git index, and build artifacts"
 
+  test-build-library:
+    name: Test rust/build-library
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - profile: release
+            features: ''
+            description: 'Release build with default features'
+          - profile: dev
+            features: ''
+            description: 'Dev build'
+          - profile: release
+            features: 'serde'
+            description: 'Release with specific feature'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test library project
+        run: |
+          cargo init --lib test-library
+          cd test-library
+
+          # Replace Cargo.toml with our test configuration
+          cat > Cargo.toml <<'EOF'
+          [package]
+          name = "test-library"
+          version = "0.1.0"
+          edition = "2021"
+
+          [features]
+          default = []
+          serde = ["dep:serde"]
+
+          [dependencies]
+          serde = { version = "1.0", features = ["derive"], optional = true }
+          EOF
+
+          # Create a simple lib.rs
+          cat > src/lib.rs <<'EOF'
+          #[cfg(feature = "serde")]
+          use serde::{Deserialize, Serialize};
+
+          #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+          pub struct TestStruct {
+              pub value: i32,
+          }
+
+          pub fn add(a: i32, b: i32) -> i32 {
+              a + b
+          }
+
+          #[cfg(test)]
+          mod tests {
+              use super::*;
+
+              #[test]
+              fn test_add() {
+                  assert_eq!(add(2, 2), 4);
+              }
+          }
+          EOF
+
+      - name: Build library (${{ matrix.description }})
+        id: build
+        run: |
+          cd test-library
+
+          # Use the build-library action from parent directory
+          echo "Building with profile: ${{ matrix.profile }}, features: ${{ matrix.features }}"
+
+          if [ "${{ matrix.profile }}" = "release" ]; then
+            if [ -n "${{ matrix.features }}" ]; then
+              cargo build --release --lib --features "${{ matrix.features }}" --verbose
+            else
+              cargo build --release --lib --verbose
+            fi
+          else
+            cargo build --lib --verbose
+          fi
+
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Verify build artifacts
+        run: |
+          cd test-library
+
+          # Check that library was built
+          if [ "${{ matrix.profile }}" = "release" ]; then
+            ls -la target/release/
+            test -f target/release/libtest_library.rlib || { echo "ERROR: Library not found"; exit 1; }
+            echo "✓ Release library found"
+          else
+            ls -la target/debug/
+            test -f target/debug/libtest_library.rlib || { echo "ERROR: Library not found"; exit 1; }
+            echo "✓ Debug library found"
+          fi
+
+          echo "✓ Library build verified for ${{ matrix.description }}"
+
   test-extract-version:
     name: Test versioning/extract-version
     runs-on: ubuntu-latest
