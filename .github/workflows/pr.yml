@@ -4,8 +4,6 @@
 name: Test GitHub Actions
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -214,7 +212,7 @@ jobs:
         run: |
           echo "Checking README content..."
 
-          find . -name "README.md" -path "*/rust/*" -o -path "*/security/*" -o -path "*/docker/*" -o -path "*/versioning/*" | while read readme; do
+          find . -type f -name "README.md" \( -path "*/rust/*" -o -path "*/security/*" -o -path "*/docker/*" -o -path "*/versioning/*" \) | while read readme; do
             echo "Checking: $readme"
 
             # Check for required sections

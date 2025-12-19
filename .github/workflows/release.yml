@@ -1,0 +1,346 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: Release GitHub Actions
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  security-events: write
+
+jobs:
+  extract-version:
+    name: Extract Version from Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      version-without-v: ${{ steps.parse.outputs.version-without-v }}
+      major: ${{ steps.parse.outputs.major }}
+      minor: ${{ steps.parse.outputs.minor }}
+      patch: ${{ steps.parse.outputs.patch }}
+      is-prerelease: ${{ steps.parse.outputs.is-prerelease }}
+    steps:
+      - name: Parse release tag
+        id: parse
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          echo "Release tag: $TAG_NAME"
+
+          # Remove 'v' prefix if present
+          VERSION="${TAG_NAME#v}"
+          echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version-without-v=$VERSION" >> $GITHUB_OUTPUT
+
+          # Validate version format (semver)
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$'; then
+            echo "ERROR: Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-prerelease+metadata"
+            exit 1
+          fi
+
+          # Extract major.minor.patch (strip prerelease/metadata)
+          BASE_VERSION=$(echo "$VERSION" | sed -E 's/(-.*)?(\+.*)?$//')
+          MAJOR=$(echo "$BASE_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$BASE_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$BASE_VERSION" | cut -d. -f3)
+
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+          echo "minor=$MINOR" >> $GITHUB_OUTPUT
+          echo "patch=$PATCH" >> $GITHUB_OUTPUT
+
+          # Check if prerelease
+          if echo "$VERSION" | grep -q '-'; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+            echo "✓ Pre-release version detected"
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+            echo "✓ Stable release version"
+          fi
+
+          echo "✓ Version parsed: $MAJOR.$MINOR.$PATCH"
+
+  validate:
+    name: Validate Actions
+    needs: extract-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Display version info
+        run: |
+          echo "Version: ${{ needs.extract-version.outputs.version }}"
+          echo "Major: ${{ needs.extract-version.outputs.major }}"
+          echo "Minor: ${{ needs.extract-version.outputs.minor }}"
+          echo "Patch: ${{ needs.extract-version.outputs.patch }}"
+          echo "Is Prerelease: ${{ needs.extract-version.outputs.is-prerelease }}"
+
+      - name: Validate all action.yml files
+        run: |
+          echo "Validating action.yml syntax..."
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            echo "Validating: $action"
+            python3 -c "import yaml; yaml.safe_load(open('$action'))" || exit 1
+            echo "✓ $action is valid YAML"
+          done
+
+      - name: Check required action fields
+        run: |
+          echo "Checking required fields in actions..."
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            echo "Checking: $action"
+
+            # Check for required fields
+            grep -q "^name:" "$action" || { echo "ERROR: Missing 'name' in $action"; exit 1; }
+            grep -q "^description:" "$action" || { echo "ERROR: Missing 'description' in $action"; exit 1; }
+            grep -q "using:" "$action" || { echo "ERROR: Missing 'runs.using' in $action"; exit 1; }
+
+            echo "✓ $action has required fields"
+          done
+
+      - name: Validate documentation exists
+        run: |
+          echo "Checking for README.md files..."
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            dir=$(dirname "$action")
+            if [ ! -f "$dir/README.md" ]; then
+              echo "ERROR: Missing README.md in $dir"
+              exit 1
+            fi
+            echo "✓ Found README.md in $dir"
+          done
+
+      - name: Validate SPDX license headers
+        run: |
+          echo "Checking SPDX headers in action files..."
+          find . -name "action.yml" -o -name "action.yaml" | while read action; do
+            if ! head -n 10 "$action" | grep -q "SPDX-License-Identifier:"; then
+              echo "ERROR: Missing SPDX header in $action"
+              exit 1
+            fi
+            echo "✓ $action has SPDX header"
+          done
+
+      - name: Validate LICENSE file
+        run: |
+          if [ ! -f "LICENSE" ]; then
+            echo "ERROR: Missing LICENSE file"
+            exit 1
+          fi
+          echo "✓ LICENSE file exists"
+
+      - name: Check for changelog entry
+        run: |
+          VERSION="${{ needs.extract-version.outputs.version-without-v }}"
+          if ! grep -q "\[$VERSION\]" CHANGELOG.md; then
+            echo "WARNING: No changelog entry found for version $VERSION"
+            echo "Please update CHANGELOG.md before releasing"
+          else
+            echo "✓ Changelog entry found for $VERSION"
+          fi
+
+  test:
+    name: Run Test Suite
+    needs: [extract-version, validate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Test rust/cache-cargo
+        uses: ./rust/cache-cargo
+
+      - name: Test versioning/extract-version
+        id: version
+        uses: ./versioning/extract-version
+        with:
+          repository: firestoned/github-actions
+          workflow-type: release
+          release-tag: ${{ needs.extract-version.outputs.version }}
+
+      - name: Display version outputs
+        run: |
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Tag: ${{ steps.version.outputs.tag-name }}"
+          echo "Image Tag: ${{ steps.version.outputs.image-tag }}"
+
+      - name: Test security/license-check
+        uses: ./security/license-check
+        with:
+          copyright-holder: 'Erick Bourgeois, firestoned'
+          license-id: MIT
+
+      - name: Test docker/setup-docker
+        uses: ./docker/setup-docker
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Docker Buildx
+        run: |
+          docker buildx version
+          docker buildx ls
+
+  create-tags:
+    name: Create Version Tags
+    needs: [extract-version, validate, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Create major and minor tags
+        run: |
+          MAJOR="${{ needs.extract-version.outputs.major }}"
+          MINOR="${{ needs.extract-version.outputs.minor }}"
+          PATCH="${{ needs.extract-version.outputs.patch }}"
+          VERSION="${{ needs.extract-version.outputs.version }}"
+          IS_PRERELEASE="${{ needs.extract-version.outputs.is-prerelease }}"
+
+          echo "Creating tags for version $VERSION"
+          echo "  Major: $MAJOR"
+          echo "  Minor: $MINOR"
+          echo "  Patch: $PATCH"
+          echo "  Is Prerelease: $IS_PRERELEASE"
+
+          # Only create moving tags for stable releases (not prereleases)
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            # Create or update minor version tag (v1.0)
+            git tag -fa "v$MAJOR.$MINOR" -m "Latest v$MAJOR.$MINOR release: $VERSION"
+            echo "✓ Created/updated tag v$MAJOR.$MINOR"
+
+            # Create or update major version tag (v1)
+            git tag -fa "v$MAJOR" -m "Latest v$MAJOR release: $VERSION"
+            echo "✓ Created/updated tag v$MAJOR"
+
+            # Push tags with force (to update them)
+            git push origin "v$MAJOR.$MINOR" --force
+            echo "✓ Pushed v$MAJOR.$MINOR"
+
+            git push origin "v$MAJOR" --force
+            echo "✓ Pushed v$MAJOR"
+
+            echo "✓ Moving tags updated successfully"
+          else
+            echo "⚠ Skipping moving tags for pre-release version"
+            echo "  Pre-releases do not update major/minor tags"
+          fi
+
+      - name: Summary
+        run: |
+          MAJOR="${{ needs.extract-version.outputs.major }}"
+          MINOR="${{ needs.extract-version.outputs.minor }}"
+          VERSION="${{ needs.extract-version.outputs.version }}"
+          IS_PRERELEASE="${{ needs.extract-version.outputs.is-prerelease }}"
+
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Successfully Released $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags Created:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`$VERSION\` - Exact version tag (created by release)" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            echo "- \`v$MAJOR.$MINOR\` - Minor version tag (auto-updates)" >> $GITHUB_STEP_SUMMARY
+            echo "- \`v$MAJOR\` - Major version tag (auto-updates)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Pre-release**: Moving tags (v$MAJOR, v$MAJOR.$MINOR) were NOT updated" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Usage:**" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`yaml" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            echo "# Recommended: Pin to major version" >> $GITHUB_STEP_SUMMARY
+            echo "uses: firestoned/github-actions/rust/cache-cargo@v$MAJOR" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "# Conservative: Pin to exact version" >> $GITHUB_STEP_SUMMARY
+          echo "uses: firestoned/github-actions/rust/cache-cargo@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Notes:** [View Release](https://github.com/${{ github.repository }}/releases/tag/$VERSION)" >> $GITHUB_STEP_SUMMARY
+
+  post-release:
+    name: Post-Release Checks
+    needs: [extract-version, create-tags]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Verify tags
+        run: |
+          MAJOR="${{ needs.extract-version.outputs.major }}"
+          MINOR="${{ needs.extract-version.outputs.minor }}"
+          VERSION="${{ needs.extract-version.outputs.version }}"
+          IS_PRERELEASE="${{ needs.extract-version.outputs.is-prerelease }}"
+
+          echo "Verifying tags exist remotely..."
+
+          # Fetch all tags
+          git fetch --tags
+
+          # Verify exact version tag (created by the release)
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "✓ Tag $VERSION exists"
+          else
+            echo "ERROR: Tag $VERSION not found"
+            exit 1
+          fi
+
+          # Verify moving tags (only for stable releases)
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            # Verify minor tag
+            if git rev-parse "v$MAJOR.$MINOR" >/dev/null 2>&1; then
+              echo "✓ Tag v$MAJOR.$MINOR exists"
+            else
+              echo "ERROR: Tag v$MAJOR.$MINOR not found"
+              exit 1
+            fi
+
+            # Verify major tag
+            if git rev-parse "v$MAJOR" >/dev/null 2>&1; then
+              echo "✓ Tag v$MAJOR exists"
+            else
+              echo "ERROR: Tag v$MAJOR not found"
+              exit 1
+            fi
+          else
+            echo "⚠ Skipping moving tag verification for pre-release"
+          fi
+
+      - name: Display usage instructions
+        run: |
+          MAJOR="${{ needs.extract-version.outputs.major }}"
+          VERSION="${{ needs.extract-version.outputs.version }}"
+          IS_PRERELEASE="${{ needs.extract-version.outputs.is-prerelease }}"
+
+          echo "✅ Release complete and ready for use!"
+          echo ""
+          echo "Users can now reference actions with:"
+          echo ""
+
+          if [ "$IS_PRERELEASE" = "false" ]; then
+            echo "  # Recommended - automatic updates"
+            echo "  uses: firestoned/github-actions/rust/cache-cargo@v$MAJOR"
+            echo ""
+          fi
+
+          echo "  # Exact version - manual updates only"
+          echo "  uses: firestoned/github-actions/rust/cache-cargo@$VERSION"
+          echo ""
