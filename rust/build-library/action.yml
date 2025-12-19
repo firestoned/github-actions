@@ -1,0 +1,190 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: 'Build Rust Library'
+description: 'Builds Rust library/crate with specified profile and features'
+author: 'Erick Bourgeois <erick@firestoned.io>'
+
+branding:
+  icon: 'package'
+  color: 'orange'
+
+inputs:
+  target:
+    description: 'Rust target triple (e.g., x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu)'
+    required: false
+    default: ''
+  profile:
+    description: 'Build profile (dev, release, or custom profile name)'
+    required: false
+    default: 'release'
+  features:
+    description: 'Space or comma-separated list of features to activate'
+    required: false
+    default: ''
+  all-features:
+    description: 'Activate all available features'
+    required: false
+    default: 'false'
+  no-default-features:
+    description: 'Do not activate the default features'
+    required: false
+    default: 'false'
+  lib:
+    description: 'Build only the library (skip bins, examples, tests, benches)'
+    required: false
+    default: 'true'
+  package:
+    description: 'Package to build (for workspaces with multiple packages)'
+    required: false
+    default: ''
+  workspace:
+    description: 'Build all workspace members'
+    required: false
+    default: 'false'
+  use-cross:
+    description: 'Force use of cross for cross-compilation (auto-detected if not specified)'
+    required: false
+    default: 'auto'
+
+outputs:
+  build-status:
+    description: 'Build status (success or failure)'
+    value: ${{ steps.build.outputs.status }}
+  target-dir:
+    description: 'Path to target directory containing build artifacts'
+    value: ${{ steps.build.outputs.target-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Determine build command
+      id: config
+      shell: bash
+      run: |
+        # Start with base command
+        if [ "${{ inputs.use-cross }}" = "true" ] || \
+           ([ "${{ inputs.use-cross }}" = "auto" ] && [ "${{ inputs.target }}" = "aarch64-unknown-linux-gnu" ]); then
+          BUILD_CMD="cross"
+          echo "Using cross for cross-compilation"
+        else
+          BUILD_CMD="cargo"
+          echo "Using cargo for native build"
+        fi
+
+        echo "build-cmd=$BUILD_CMD" >> $GITHUB_OUTPUT
+
+        # Build the full command
+        CMD="$BUILD_CMD build"
+
+        # Add profile
+        if [ "${{ inputs.profile }}" = "release" ]; then
+          CMD="$CMD --release"
+        elif [ "${{ inputs.profile }}" != "dev" ]; then
+          CMD="$CMD --profile ${{ inputs.profile }}"
+        fi
+
+        # Add target if specified
+        if [ -n "${{ inputs.target }}" ]; then
+          CMD="$CMD --target ${{ inputs.target }}"
+        fi
+
+        # Add lib flag
+        if [ "${{ inputs.lib }}" = "true" ]; then
+          CMD="$CMD --lib"
+        fi
+
+        # Add features
+        if [ "${{ inputs.all-features }}" = "true" ]; then
+          CMD="$CMD --all-features"
+        elif [ -n "${{ inputs.features }}" ]; then
+          CMD="$CMD --features ${{ inputs.features }}"
+        fi
+
+        # Add no-default-features
+        if [ "${{ inputs.no-default-features }}" = "true" ]; then
+          CMD="$CMD --no-default-features"
+        fi
+
+        # Add package if specified
+        if [ -n "${{ inputs.package }}" ]; then
+          CMD="$CMD --package ${{ inputs.package }}"
+        fi
+
+        # Add workspace if specified
+        if [ "${{ inputs.workspace }}" = "true" ]; then
+          CMD="$CMD --workspace"
+        fi
+
+        # Add verbose output
+        CMD="$CMD --verbose"
+
+        echo "full-cmd=$CMD" >> $GITHUB_OUTPUT
+        echo "Build command: $CMD"
+
+    - name: Build library
+      id: build
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        echo "Building Rust library..."
+        echo "Command: ${{ steps.config.outputs.full-cmd }}"
+        echo ""
+
+        # Execute build
+        if ${{ steps.config.outputs.full-cmd }}; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "✓ Build succeeded"
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "✗ Build failed"
+          exit 1
+        fi
+
+        # Determine target directory
+        if [ -n "${{ inputs.target }}" ]; then
+          if [ "${{ inputs.profile }}" = "release" ]; then
+            TARGET_DIR="target/${{ inputs.target }}/release"
+          elif [ "${{ inputs.profile }}" = "dev" ]; then
+            TARGET_DIR="target/${{ inputs.target }}/debug"
+          else
+            TARGET_DIR="target/${{ inputs.target }}/${{ inputs.profile }}"
+          fi
+        else
+          if [ "${{ inputs.profile }}" = "release" ]; then
+            TARGET_DIR="target/release"
+          elif [ "${{ inputs.profile }}" = "dev" ]; then
+            TARGET_DIR="target/debug"
+          else
+            TARGET_DIR="target/${{ inputs.profile }}"
+          fi
+        fi
+
+        echo "target-dir=$TARGET_DIR" >> $GITHUB_OUTPUT
+        echo "Build artifacts in: $TARGET_DIR"
+
+    - name: Display build summary
+      shell: bash
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Profile**: \`${{ inputs.profile }}\`" >> $GITHUB_STEP_SUMMARY
+
+        if [ -n "${{ inputs.target }}" ]; then
+          echo "**Target**: \`${{ inputs.target }}\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ "${{ inputs.all-features }}" = "true" ]; then
+          echo "**Features**: All features enabled" >> $GITHUB_STEP_SUMMARY
+        elif [ -n "${{ inputs.features }}" ]; then
+          echo "**Features**: \`${{ inputs.features }}\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ "${{ inputs.no-default-features }}" = "true" ]; then
+          echo "**Default Features**: Disabled" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "**Build Tool**: \`${{ steps.config.outputs.build-cmd }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+        echo "**Artifacts**: \`${{ steps.build.outputs.target-dir }}\`" >> $GITHUB_STEP_SUMMARY

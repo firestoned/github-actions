@@ -56,6 +56,7 @@ jobs:
 | [`rust/cache-cargo`](rust/cache-cargo/README.md) | Cache Cargo registry, index, and build artifacts | [📖 Docs](rust/cache-cargo/README.md) |
 | [`rust/setup-rust-build`](rust/setup-rust-build/README.md) | Set up Rust toolchain with cross-compilation support | [📖 Docs](rust/setup-rust-build/README.md) |
 | [`rust/build-binary`](rust/build-binary/README.md) | Build Rust binaries for x86_64 and ARM64 | [📖 Docs](rust/build-binary/README.md) |
+| [`rust/build-library`](rust/build-library/README.md) | Build Rust libraries with flexible profile and feature control | [📖 Docs](rust/build-library/README.md) |
 | [`rust/security-scan`](rust/security-scan/README.md) | Scan Rust dependencies for vulnerabilities (cargo-audit) | [📖 Docs](rust/security-scan/README.md) |
 | [`rust/generate-sbom`](rust/generate-sbom/README.md) | Generate Software Bill of Materials (CycloneDX) | [📖 Docs](rust/generate-sbom/README.md) |
 
@@ -265,7 +266,7 @@ These actions are built with the following principles:
 
 | Language | Actions Available | Count |
 |----------|-------------------|-------|
-| **Rust** | cache-cargo, setup-rust-build, build-binary, security-scan, generate-sbom | 5 |
+| **Rust** | cache-cargo, setup-rust-build, build-binary, build-library, security-scan, generate-sbom | 6 |
 | **Go** | trivy-scan, cosign-sign, verify-signed-commits, license-check, setup-docker, extract-version | 6 |
 | **Python** | trivy-scan, cosign-sign, verify-signed-commits, license-check, setup-docker, extract-version | 6 |
 | **Node.js** | trivy-scan, cosign-sign, verify-signed-commits, license-check, setup-docker, extract-version | 6 |

@@ -1,0 +1,235 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+# Example workflow for building and testing Rust libraries
+# This demonstrates best practices for library CI/CD pipelines
+
+name: Rust Library CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Test library builds with different feature combinations
+  test-features:
+    name: Test Feature Combinations
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - name: 'default'
+            flags: ''
+            description: 'Default features only'
+          - name: 'minimal'
+            flags: '--no-default-features'
+            description: 'No default features'
+          - name: 'serde'
+            flags: '--features serde'
+            description: 'With serde support'
+          - name: 'async'
+            flags: '--features async'
+            description: 'With async support'
+          - name: 'all'
+            flags: '--all-features'
+            description: 'All features enabled'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Cargo dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build library (${{ matrix.features.description }})
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          profile: release
+          features: ${{ matrix.features.name != 'all' && matrix.features.name != 'minimal' && matrix.features.name != 'default' && matrix.features.name || '' }}
+          all-features: ${{ matrix.features.name == 'all' }}
+          no-default-features: ${{ matrix.features.name == 'minimal' }}
+
+      - name: Run tests (${{ matrix.features.description }})
+        run: cargo test ${{ matrix.features.flags }} --verbose
+
+      - name: Run doc tests
+        run: cargo test --doc ${{ matrix.features.flags }}
+
+  # Build for multiple targets
+  build-targets:
+    name: Build Multi-Architecture
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
+        with:
+          target: ${{ matrix.target }}
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build library for ${{ matrix.target }}
+        id: build
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          target: ${{ matrix.target }}
+          all-features: true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-${{ matrix.target }}
+          path: ${{ steps.build.outputs.target-dir }}/lib*
+          retention-days: 7
+
+  # Code quality checks
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Check documentation
+        run: cargo doc --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  # Security scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Run security audit
+        uses: firestoned/github-actions/rust/security-scan@v1
+        with:
+          cargo-audit-version: '0.21.0'
+
+      - name: Generate SBOM
+        uses: firestoned/github-actions/rust/generate-sbom@v1
+        with:
+          format: json
+          output-file: sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 30
+
+  # Benchmark testing (optional)
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build benchmarks
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          profile: release
+          all-features: true
+
+      - name: Run benchmarks
+        run: cargo bench --all-features
+
+  # Documentation generation and deployment
+  docs:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build library
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          all-features: true
+
+      - name: Generate documentation
+        run: cargo doc --all-features --no-deps
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: target/doc/
+          retention-days: 30
+
+  # Workspace build (if your project uses workspaces)
+  workspace:
+    name: Build Workspace
+    runs-on: ubuntu-latest
+    if: false # Enable this if you have a workspace
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build entire workspace
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          workspace: true
+          all-features: true
+
+      - name: Test workspace
+        run: cargo test --workspace --all-features
+
+  # Summary job that requires all checks to pass
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [test-features, build-targets, quality, security]
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[ "${{ needs.test-features.result }}" != "success" ]] || \
+             [[ "${{ needs.build-targets.result }}" != "success" ]] || \
+             [[ "${{ needs.quality.result }}" != "success" ]] || \
+             [[ "${{ needs.security.result }}" != "success" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "✅ All CI checks passed!"

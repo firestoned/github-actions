@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial release of firestoned/github-actions composite actions repository
-- 11 production-ready GitHub Actions composite workflows
-- Comprehensive documentation for all actions
+- **rust/build-library** - Build Rust libraries with flexible profile and feature control
+- Comprehensive test coverage for build-library action (dev/release profiles, feature flags)
+- Example library CI workflow demonstrating feature matrix testing
+- Release workflow automation (triggers on release published event)
+- RELEASE_PROCESS.md documentation for release workflow
 
 ## [1.0.0] - 2025-12-18
 
