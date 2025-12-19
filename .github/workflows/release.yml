@@ -199,6 +199,8 @@ jobs:
           fetch-depth: 0
 
       - name: Create major and minor tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           MAJOR="${{ needs.extract-version.outputs.major }}"
           MINOR="${{ needs.extract-version.outputs.minor }}"
@@ -212,22 +214,29 @@ jobs:
           echo "  Patch: $PATCH"
           echo "  Is Prerelease: $IS_PRERELEASE"
 
+          # Get the SHA of the release tag
+          SHA=$(git rev-parse "$VERSION")
+          echo "Release SHA: $SHA"
+
           # Only create moving tags for stable releases (not prereleases)
           if [ "$IS_PRERELEASE" = "false" ]; then
             # Create or update minor version tag (v1.0)
-            git tag -fa "v$MAJOR.$MINOR" -m "Latest v$MAJOR.$MINOR release: $VERSION"
+            echo "Creating/updating tag v$MAJOR.$MINOR..."
+            gh api --method POST /repos/${{ github.repository }}/git/refs \
+              -f ref="refs/tags/v$MAJOR.$MINOR" \
+              -f sha="$SHA" 2>/dev/null || \
+            gh api --method PATCH /repos/${{ github.repository }}/git/refs/tags/v$MAJOR.$MINOR \
+              -f sha="$SHA" -F force=true
             echo "✓ Created/updated tag v$MAJOR.$MINOR"
 
             # Create or update major version tag (v1)
-            git tag -fa "v$MAJOR" -m "Latest v$MAJOR release: $VERSION"
+            echo "Creating/updating tag v$MAJOR..."
+            gh api --method POST /repos/${{ github.repository }}/git/refs \
+              -f ref="refs/tags/v$MAJOR" \
+              -f sha="$SHA" 2>/dev/null || \
+            gh api --method PATCH /repos/${{ github.repository }}/git/refs/tags/v$MAJOR \
+              -f sha="$SHA" -F force=true
             echo "✓ Created/updated tag v$MAJOR"
-
-            # Push tags with force (to update them)
-            git push origin "v$MAJOR.$MINOR" --force
-            echo "✓ Pushed v$MAJOR.$MINOR"
-
-            git push origin "v$MAJOR" --force
-            echo "✓ Pushed v$MAJOR"
 
             echo "✓ Moving tags updated successfully"
           else
