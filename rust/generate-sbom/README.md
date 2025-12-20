@@ -6,7 +6,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 - Generates CycloneDX-compliant SBOM files
 - Supports JSON and XML output formats
-- Can describe binaries, dependencies, or both
+- Three describe modes: entire crate, binaries only, or all Cargo targets
 - Multi-architecture support with target specification
 - Caches `cargo-cyclonedx` binary for fast execution
 - Automatic file discovery and verification
@@ -39,13 +39,31 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
     format: both
 ```
 
-### Include Dependencies
+### Describe Entire Crate (Default)
 
 ```yaml
-- name: Generate SBOM with dependencies
+- name: Generate SBOM for entire crate
   uses: your-org/github-actions/rust/generate-sbom@v1
   with:
-    describe: both
+    describe: crate
+```
+
+### Describe Only Binaries
+
+```yaml
+- name: Generate SBOM for binaries only
+  uses: your-org/github-actions/rust/generate-sbom@v1
+  with:
+    describe: binaries
+```
+
+### Describe All Cargo Targets
+
+```yaml
+- name: Generate SBOM for all targets
+  uses: your-org/github-actions/rust/generate-sbom@v1
+  with:
+    describe: all-cargo-targets
 ```
 
 ### Target-Specific SBOM
@@ -81,7 +99,7 @@ jobs:
         uses: your-org/github-actions/rust/generate-sbom@v1
         with:
           format: both
-          describe: both
+          describe: crate
           target: x86_64-unknown-linux-gnu
 
       - name: Upload SBOM
@@ -100,8 +118,16 @@ jobs:
 |------|-------------|----------|---------|
 | `format` | Output format: `json`, `xml`, or `both` | No | `json` |
 | `cyclonedx-version` | Version of `cargo-cyclonedx` to use | No | `0.5.7` |
-| `describe` | What to describe: `binaries`, `dependencies`, or `both` | No | `binaries` |
+| `describe` | What to describe: `crate` (entire crate with targets as subcomponents), `binaries` (separate SBOM per binary), or `all-cargo-targets` (separate SBOM per Cargo target) | No | `crate` |
 | `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`) | No | `''` (default target) |
+
+### Describe Mode Details
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `crate` | Entire crate in a single SBOM file, with Cargo targets as subcomponents | Default; most comprehensive single-file SBOM |
+| `binaries` | Separate SBOM for each binary (bin, cdylib); ignores other targets | Focus on executable artifacts only |
+| `all-cargo-targets` | Separate SBOM for each Cargo target, including non-executable ones (e.g., rlib) | Detailed analysis of all build outputs |
 
 ## Output Files
 
@@ -111,10 +137,11 @@ Generated SBOM files follow these naming patterns:
 
 | Describe | Target | Format | Filename |
 |----------|--------|--------|----------|
-| `binaries` | Default | JSON | `{binary-name}_*.cdx.json` |
-| `binaries` | Default | XML | `{binary-name}_*.cdx.xml` |
-| `dependencies` | Default | JSON | `{package-name}_*.cdx.json` |
-| `both` | Specified | JSON | `target/{target}/release/{binary}_*.cdx.json` |
+| `crate` | Default | JSON | `{crate-name}_*.cdx.json` |
+| `crate` | Default | XML | `{crate-name}_*.cdx.xml` |
+| `binaries` | Default | JSON | `{binary-name}_*.cdx.json` (per binary) |
+| `binaries` | Specified | JSON | `target/{target}/release/{binary}_*.cdx.json` |
+| `all-cargo-targets` | Default | JSON | `{target-name}_*.cdx.json` (per target) |
 
 ### File Location
 
@@ -149,7 +176,7 @@ Generated SBOM files follow these naming patterns:
 ```bash
 cargo cyclonedx --all \
   [--target <target>] \
-  --describe <binaries|dependencies|both> \
+  --describe <crate|binaries|all-cargo-targets> \
   --format <json|xml>
 ```
 

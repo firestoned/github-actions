@@ -19,9 +19,9 @@ inputs:
     required: false
     default: '0.5.7'
   describe:
-    description: 'What to describe in SBOM (binaries, dependencies, or both)'
+    description: 'What to describe in SBOM: crate (entire crate with targets as subcomponents), binaries (separate SBOM per binary), or all-cargo-targets (separate SBOM per Cargo target)'
     required: false
-    default: 'binaries'
+    default: 'crate'
   target:
     description: 'Optional Rust target triple (e.g., x86_64-unknown-linux-gnu)'
     required: false
