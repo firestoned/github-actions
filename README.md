@@ -2,8 +2,40 @@
 
 **Reusable composite GitHub Actions for CI/CD pipelines**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## Project Status
+
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/firestoned/github-actions)](https://github.com/firestoned/github-actions/releases)
+[![GitHub commits since latest release](https://img.shields.io/github/commits-since/firestoned/github-actions/latest)](https://github.com/firestoned/github-actions/commits/main)
+[![Last Commit](https://img.shields.io/github/last-commit/firestoned/github-actions)](https://github.com/firestoned/github-actions/commits/main)
+
+## CI/CD Status
+
+[![PR Tests](https://github.com/firestoned/github-actions/workflows/Test%20GitHub%20Actions/badge.svg)](https://github.com/firestoned/github-actions/actions/workflows/pr.yml)
+[![Release Workflow](https://github.com/firestoned/github-actions/workflows/Release%20GitHub%20Actions/badge.svg)](https://github.com/firestoned/github-actions/actions/workflows/release.yml)
+
+## Technology & Compatibility
+
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/features/actions)
+[![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)](https://www.linux.org/)
+[![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)](https://www.apple.com/macos/)
+
+## Security & Compliance
+
+[![SPDX](https://img.shields.io/badge/SPDX-License--Identifier-blue)](https://spdx.dev/)
+[![CycloneDX](https://img.shields.io/badge/CycloneDX-SBOM-orange)](https://cyclonedx.org/)
+[![Trivy](https://img.shields.io/badge/Trivy-Security%20Scanning-blue)](https://trivy.dev/)
+[![Cosign](https://img.shields.io/badge/Cosign-Artifact%20Signing-purple)](https://docs.sigstore.dev/cosign/overview/)
+
+## Community & Support
+
+[![Issues](https://img.shields.io/github/issues/firestoned/github-actions)](https://github.com/firestoned/github-actions/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/firestoned/github-actions)](https://github.com/firestoned/github-actions/pulls)
+[![Contributors](https://img.shields.io/github/contributors/firestoned/github-actions)](https://github.com/firestoned/github-actions/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/firestoned/github-actions?style=social)](https://github.com/firestoned/github-actions/stargazers)
+
+---
 
 A collection of production-ready, reusable GitHub Actions composite workflows for Rust, Docker, security scanning, and compliance. Built for enterprise environments with a focus on security, supply chain integrity, and regulatory compliance.
 
