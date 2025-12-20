@@ -76,6 +76,26 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
     describe: binaries
 ```
 
+### Workspace - Entire Workspace
+
+```yaml
+- name: Generate SBOM for entire workspace
+  uses: your-org/github-actions/rust/generate-sbom@v1
+  with:
+    workspace: true
+    format: both
+```
+
+### Workspace - Specific Package
+
+```yaml
+- name: Generate SBOM for specific workspace package
+  uses: your-org/github-actions/rust/generate-sbom@v1
+  with:
+    package: my-core-library
+    format: json
+```
+
 ### Complete Workflow with Upload
 
 ```yaml
@@ -120,6 +140,8 @@ jobs:
 | `cyclonedx-version` | Version of `cargo-cyclonedx` to use | No | `0.5.7` |
 | `describe` | What to describe: `crate` (entire crate with targets as subcomponents), `binaries` (separate SBOM per binary), or `all-cargo-targets` (separate SBOM per Cargo target) | No | `crate` |
 | `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`) | No | `''` (default target) |
+| `package` | Package to generate SBOM for (for workspaces with multiple packages) | No | `''` |
+| `workspace` | Generate SBOM for all workspace members | No | `false` |
 
 ### Describe Mode Details
 
@@ -173,8 +195,27 @@ Generated SBOM files follow these naming patterns:
 
 ### Command Construction
 
+The action builds commands based on your configuration:
+
+**Single crate (default)**:
 ```bash
 cargo cyclonedx --all \
+  [--target <target>] \
+  --describe <crate|binaries|all-cargo-targets> \
+  --format <json|xml>
+```
+
+**Entire workspace**:
+```bash
+cargo cyclonedx --workspace \
+  [--target <target>] \
+  --describe <crate|binaries|all-cargo-targets> \
+  --format <json|xml>
+```
+
+**Specific package in workspace**:
+```bash
+cargo cyclonedx --package <package-name> \
   [--target <target>] \
   --describe <crate|binaries|all-cargo-targets> \
   --format <json|xml>
@@ -352,6 +393,85 @@ For multi-binary projects:
       --input binary1.cdx.json \
       --input binary2.cdx.json \
       --output merged.cdx.json
+```
+
+### Workspace SBOM Workflow
+
+Complete workflow for Cargo workspaces with multiple packages:
+
+```yaml
+name: Generate Workspace SBOMs
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  sbom-workspace:
+    name: Generate SBOM for Entire Workspace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build entire workspace
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          workspace: true
+          all-features: true
+
+      - name: Generate workspace SBOM
+        uses: firestoned/github-actions/rust/generate-sbom@v1
+        with:
+          workspace: true
+          format: both
+          describe: crate
+
+      - name: Upload workspace SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-sbom
+          path: |
+            **/*.cdx.json
+            **/*.cdx.xml
+
+  sbom-packages:
+    name: Generate SBOM per Package
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - my-core
+          - my-cli
+          - my-utils
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: firestoned/github-actions/rust/cache-cargo@v1
+
+      - name: Build package
+        uses: firestoned/github-actions/rust/build-library@v1
+        with:
+          package: ${{ matrix.package }}
+          all-features: true
+
+      - name: Generate package SBOM
+        uses: firestoned/github-actions/rust/generate-sbom@v1
+        with:
+          package: ${{ matrix.package }}
+          format: json
+          describe: crate
+
+      - name: Upload package SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.package }}
+          path: "*.cdx.json"
 ```
 
 ## SBOM Use Cases

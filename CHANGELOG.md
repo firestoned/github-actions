@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Example library CI workflow demonstrating feature matrix testing
 - Release workflow automation (triggers on release published event)
 - RELEASE_PROCESS.md documentation for release workflow
+- Workspace support for **rust/generate-sbom** action
+  - `workspace` input to generate SBOM for entire workspace
+  - `package` input to generate SBOM for specific workspace package
+  - Enhanced file discovery for workspace-generated SBOMs
+  - Complete workspace workflow examples in documentation
+
+### Changed
+- **rust/generate-sbom** now supports Cargo workspaces with `--workspace` and `--package` flags
+- Updated generate-sbom README with workspace examples and best practices
 
 ## [1.0.0] - 2025-12-18
 
