@@ -104,9 +104,11 @@ runs:
         echo "Generated SBOM files:"
 
         # Check root directory
-        if ls *.cdx.* 2>/dev/null; then
+        if compgen -G "*.cdx.*" > /dev/null 2>&1; then
           echo "Root directory SBOMs:"
-          ls -lh *.cdx.*
+          for file in *.cdx.*; do
+            ls -lh "$file"
+          done
         fi
 
         # Check each crate directory (for workspace with describe=crate)
@@ -121,7 +123,9 @@ runs:
             if compgen -G "$crate_dir/*.cdx.*" > /dev/null 2>&1; then
               echo ""
               echo "SBOMs in $crate_dir:"
-              ls -lh "$crate_dir"/*.cdx.*
+              for file in "$crate_dir"/*.cdx.*; do
+                ls -lh "$file"
+              done
             fi
           done
         fi
@@ -131,12 +135,16 @@ runs:
           echo ""
           echo "Searching for SBOMs in target directories..."
           find target -name "*.cdx.*" -type f 2>/dev/null | while read sbom_file; do
-            echo "  $(ls -lh "$sbom_file")"
+            ls -lh "$sbom_file"
           done
         fi
 
         # Summary count
         echo ""
         total_sboms=$(find . -name "*.cdx.*" -not -path "*/target/*" -not -path "*/.git/*" -type f 2>/dev/null | wc -l | tr -d ' ')
-        target_sboms=$(find target -name "*.cdx.*" -type f 2>/dev/null | wc -l | tr -d ' ')
+        if [ -d "target" ]; then
+          target_sboms=$(find target -name "*.cdx.*" -type f 2>/dev/null | wc -l | tr -d ' ')
+        else
+          target_sboms=0
+        fi
         echo "Total SBOMs found: $total_sboms in workspace, $target_sboms in target/"
