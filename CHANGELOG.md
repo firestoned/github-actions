@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **rust/build-library** - Build Rust libraries with flexible profile and feature control
+- **rust/lint** - Run cargo fmt and cargo clippy for code quality checks
+  - Configurable fmt and clippy checks (can enable/disable individually)
+  - Custom clippy arguments and lint levels
+  - Feature support (all-features, specific features, no-default-features)
+  - Workspace support (entire workspace or specific packages)
+  - Fail-on-warnings option
+  - Detailed step summaries and outputs
 - Comprehensive test coverage for build-library action (dev/release profiles, feature flags)
+- Comprehensive test coverage for lint action (well-formatted, badly-formatted, clippy warnings)
 - Example library CI workflow demonstrating feature matrix testing
 - Release workflow automation (triggers on release published event)
 - RELEASE_PROCESS.md documentation for release workflow
