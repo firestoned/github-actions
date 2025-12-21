@@ -129,6 +129,157 @@ jobs:
 
           echo "✓ Library build verified for ${{ matrix.description }}"
 
+  test-lint:
+    name: Test rust/lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - test-case: 'well-formatted'
+            should-pass: true
+            description: 'Well formatted code should pass'
+          - test-case: 'badly-formatted'
+            should-pass: false
+            description: 'Badly formatted code should fail'
+          - test-case: 'clippy-warnings'
+            should-pass: false
+            description: 'Code with clippy warnings should fail'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create test project
+        run: |
+          cargo init --lib test-lint
+          cd test-lint
+
+          # Create Cargo.toml with features
+          cat > Cargo.toml <<'EOF'
+          [package]
+          name = "test-lint"
+          version = "0.1.0"
+          edition = "2021"
+
+          [features]
+          default = []
+          serde = ["dep:serde"]
+
+          [dependencies]
+          serde = { version = "1.0", features = ["derive"], optional = true }
+          EOF
+
+      - name: Create well-formatted code
+        if: matrix.test-case == 'well-formatted'
+        run: |
+          cd test-lint
+          cat > src/lib.rs <<'EOF'
+          #[cfg(feature = "serde")]
+          use serde::{Deserialize, Serialize};
+
+          #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+          pub struct TestStruct {
+              pub value: i32,
+          }
+
+          pub fn add(a: i32, b: i32) -> i32 {
+              a + b
+          }
+
+          #[cfg(test)]
+          mod tests {
+              use super::*;
+
+              #[test]
+              fn test_add() {
+                  assert_eq!(add(2, 2), 4);
+              }
+          }
+          EOF
+
+      - name: Create badly-formatted code
+        if: matrix.test-case == 'badly-formatted'
+        run: |
+          cd test-lint
+          cat > src/lib.rs <<'EOF'
+          pub fn add(a:i32,b:i32)->i32{a+b}
+          pub fn multiply( a : i32 , b : i32 ) -> i32 { a * b }
+          EOF
+
+      - name: Create code with clippy warnings
+        if: matrix.test-case == 'clippy-warnings'
+        run: |
+          cd test-lint
+          cat > src/lib.rs <<'EOF'
+          pub fn add(a: i32, b: i32) -> i32 {
+              a + b
+          }
+
+          // Clippy will warn about this
+          pub fn unused_variable() {
+              let x = 42;  // unused variable
+          }
+
+          // Clippy will warn about this
+          pub fn needless_return(x: i32) -> i32 {
+              return x + 1;  // needless return
+          }
+          EOF
+
+      - name: Run lint (${{ matrix.description }})
+        id: lint
+        continue-on-error: true
+        run: |
+          cd test-lint
+
+          # Simulate the lint action behavior
+          echo "Running cargo fmt --check..."
+          FMT_RESULT=0
+          cargo fmt --all --check || FMT_RESULT=$?
+
+          echo "Running cargo clippy..."
+          CLIPPY_RESULT=0
+          cargo clippy --all-targets -- -D warnings || CLIPPY_RESULT=$?
+
+          if [ $FMT_RESULT -ne 0 ] || [ $CLIPPY_RESULT -ne 0 ]; then
+            echo "Lint failed as expected for ${{ matrix.test-case }}"
+            exit 1
+          else
+            echo "Lint passed"
+            exit 0
+          fi
+
+      - name: Verify expected result
+        run: |
+          LINT_EXIT_CODE=${{ steps.lint.outcome }}
+
+          if [ "${{ matrix.should-pass }}" = "true" ]; then
+            if [ "$LINT_EXIT_CODE" = "success" ]; then
+              echo "✓ Test passed: ${{ matrix.description }}"
+            else
+              echo "✗ Test failed: Expected success but got failure"
+              exit 1
+            fi
+          else
+            if [ "$LINT_EXIT_CODE" = "failure" ]; then
+              echo "✓ Test passed: ${{ matrix.description }}"
+            else
+              echo "✗ Test failed: Expected failure but got success"
+              exit 1
+            fi
+          fi
+
+      - name: Test lint action directly (well-formatted only)
+        if: matrix.test-case == 'well-formatted'
+        working-directory: test-lint
+        run: |
+          # Test the individual commands that the action would run
+          echo "Testing cargo fmt --check..."
+          cargo fmt --all --check
+
+          echo "Testing cargo clippy..."
+          cargo clippy --all-targets -- -D warnings
+
+          echo "✓ Lint action commands work correctly"
+
   test-extract-version:
     name: Test versioning/extract-version
     runs-on: ubuntu-latest

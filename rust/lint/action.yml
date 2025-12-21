@@ -1,0 +1,177 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: 'Lint Rust Code'
+description: 'Run cargo fmt and cargo clippy to check code formatting and quality'
+author: 'Erick Bourgeois <erick@firestoned.io>'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  check-fmt:
+    description: 'Run cargo fmt --check'
+    required: false
+    default: 'true'
+  check-clippy:
+    description: 'Run cargo clippy'
+    required: false
+    default: 'true'
+  clippy-args:
+    description: 'Additional arguments for cargo clippy (e.g., "-- -D warnings")'
+    required: false
+    default: '-- -D warnings'
+  all-features:
+    description: 'Check with all features enabled'
+    required: false
+    default: 'false'
+  features:
+    description: 'Space or comma-separated list of features to activate'
+    required: false
+    default: ''
+  no-default-features:
+    description: 'Do not activate the default features'
+    required: false
+    default: 'false'
+  workspace:
+    description: 'Lint all workspace members'
+    required: false
+    default: 'false'
+  package:
+    description: 'Package to lint (for workspaces with multiple packages)'
+    required: false
+    default: ''
+  fail-on-warnings:
+    description: 'Fail if clippy emits warnings'
+    required: false
+    default: 'true'
+
+outputs:
+  fmt-status:
+    description: 'Formatting check status (success or failure)'
+    value: ${{ steps.fmt.outputs.status }}
+  clippy-status:
+    description: 'Clippy check status (success or failure)'
+    value: ${{ steps.clippy.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check formatting
+      id: fmt
+      if: inputs.check-fmt == 'true'
+      shell: bash
+      run: |
+        echo "Running cargo fmt --check..."
+
+        # Build command
+        FMT_CMD="cargo fmt --all --check"
+
+        # Add package if specified
+        if [ -n "${{ inputs.package }}" ]; then
+          FMT_CMD="cargo fmt --package ${{ inputs.package }} --check"
+        fi
+
+        echo "Command: $FMT_CMD"
+
+        if $FMT_CMD; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "✅ Formatting check passed"
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "❌ Formatting check failed"
+          echo ""
+          echo "Run 'cargo fmt' to fix formatting issues"
+          exit 1
+        fi
+
+    - name: Run Clippy
+      id: clippy
+      if: inputs.check-clippy == 'true'
+      shell: bash
+      run: |
+        echo "Running cargo clippy..."
+
+        # Build base command
+        CLIPPY_CMD="cargo clippy"
+
+        # Add workspace or package flags
+        if [ "${{ inputs.workspace }}" = "true" ]; then
+          CLIPPY_CMD="$CLIPPY_CMD --workspace"
+          echo "Linting entire workspace"
+        elif [ -n "${{ inputs.package }}" ]; then
+          CLIPPY_CMD="$CLIPPY_CMD --package ${{ inputs.package }}"
+          echo "Linting package: ${{ inputs.package }}"
+        else
+          CLIPPY_CMD="$CLIPPY_CMD --all-targets"
+          echo "Linting all targets"
+        fi
+
+        # Add features
+        if [ "${{ inputs.all-features }}" = "true" ]; then
+          CLIPPY_CMD="$CLIPPY_CMD --all-features"
+          echo "Features: all"
+        elif [ -n "${{ inputs.features }}" ]; then
+          CLIPPY_CMD="$CLIPPY_CMD --features ${{ inputs.features }}"
+          echo "Features: ${{ inputs.features }}"
+        fi
+
+        # Add no-default-features
+        if [ "${{ inputs.no-default-features }}" = "true" ]; then
+          CLIPPY_CMD="$CLIPPY_CMD --no-default-features"
+          echo "Default features: disabled"
+        fi
+
+        # Add clippy arguments
+        if [ -n "${{ inputs.clippy-args }}" ]; then
+          CLIPPY_CMD="$CLIPPY_CMD ${{ inputs.clippy-args }}"
+        fi
+
+        echo "Command: $CLIPPY_CMD"
+        echo ""
+
+        if $CLIPPY_CMD; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "✅ Clippy check passed"
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "❌ Clippy check failed"
+          if [ "${{ inputs.fail-on-warnings }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+
+    - name: Summary
+      shell: bash
+      run: |
+        echo "## Lint Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ inputs.check-fmt }}" = "true" ]; then
+          if [ "${{ steps.fmt.outputs.status }}" = "success" ]; then
+            echo "**Formatting**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Formatting**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+
+        if [ "${{ inputs.check-clippy }}" = "true" ]; then
+          if [ "${{ steps.clippy.outputs.status }}" = "success" ]; then
+            echo "**Clippy**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Clippy**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
+
+        if [ "${{ inputs.all-features }}" = "true" ]; then
+          echo "**Features**: All features enabled" >> $GITHUB_STEP_SUMMARY
+        elif [ -n "${{ inputs.features }}" ]; then
+          echo "**Features**: \`${{ inputs.features }}\`" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ "${{ inputs.workspace }}" = "true" ]; then
+          echo "**Scope**: Entire workspace" >> $GITHUB_STEP_SUMMARY
+        elif [ -n "${{ inputs.package }}" ]; then
+          echo "**Scope**: Package \`${{ inputs.package }}\`" >> $GITHUB_STEP_SUMMARY
+        fi
