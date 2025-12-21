@@ -21,6 +21,10 @@ inputs:
     description: 'Version of cross to install for ARM64 builds'
     required: false
     default: 'v0.2.5'
+  components:
+    description: 'Comma-separated list of components to install (e.g., rustfmt, clippy)'
+    required: false
+    default: 'rustfmt, clippy'
 
 runs:
   using: composite
@@ -29,6 +33,7 @@ runs:
       uses: dtolnay/rust-toolchain@stable
       with:
         targets: ${{ inputs.target }}
+        components: ${{ inputs.components }}
 
     - name: Cache Rust dependencies
       uses: Swatinem/rust-cache@v2

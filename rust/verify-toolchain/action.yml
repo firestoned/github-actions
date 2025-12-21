@@ -1,0 +1,141 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: 'Verify Rust Toolchain'
+description: 'Verify Rust toolchain and required components are installed'
+author: 'Erick Bourgeois <erick@firestoned.io>'
+
+branding:
+  icon: 'check-circle'
+  color: 'orange'
+
+inputs:
+  require-cargo:
+    description: 'Require cargo to be available'
+    required: false
+    default: 'true'
+  require-rustfmt:
+    description: 'Require rustfmt component to be available'
+    required: false
+    default: 'false'
+  require-clippy:
+    description: 'Require clippy component to be available'
+    required: false
+    default: 'false'
+  require-llvm-tools:
+    description: 'Require llvm-tools-preview component to be available'
+    required: false
+    default: 'false'
+
+outputs:
+  rustc-version:
+    description: 'Rust compiler version (if cargo is available)'
+    value: ${{ steps.verify.outputs.rustc-version }}
+  cargo-version:
+    description: 'Cargo version (if cargo is available)'
+    value: ${{ steps.verify.outputs.cargo-version }}
+  rustfmt-version:
+    description: 'rustfmt version (if rustfmt is available)'
+    value: ${{ steps.verify.outputs.rustfmt-version }}
+  clippy-version:
+    description: 'clippy version (if clippy is available)'
+    value: ${{ steps.verify.outputs.clippy-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify Rust toolchain
+      id: verify
+      shell: bash
+      run: |
+        # Track if any verification fails
+        VERIFICATION_FAILED=0
+
+        # Verify cargo
+        if [ "${{ inputs.require-cargo }}" = "true" ]; then
+          if ! command -v cargo &> /dev/null; then
+            echo "❌ Error: Rust toolchain not found"
+            echo ""
+            echo "Please set up Rust before using this action:"
+            echo ""
+            echo "  - uses: firestoned/github-actions/rust/setup-rust-build@v1"
+            echo ""
+            echo "Or use the community action:"
+            echo "  - uses: actions-rust-lang/setup-rust-toolchain@v1"
+            echo ""
+            VERIFICATION_FAILED=1
+          else
+            RUSTC_VERSION=$(rustc --version)
+            CARGO_VERSION=$(cargo --version)
+            echo "rustc-version=$RUSTC_VERSION" >> $GITHUB_OUTPUT
+            echo "cargo-version=$CARGO_VERSION" >> $GITHUB_OUTPUT
+            echo "✓ Rust toolchain: $RUSTC_VERSION"
+            echo "✓ Cargo: $CARGO_VERSION"
+          fi
+        fi
+
+        # Verify rustfmt
+        if [ "${{ inputs.require-rustfmt }}" = "true" ]; then
+          if ! command -v rustfmt &> /dev/null; then
+            echo "❌ Error: rustfmt component not found"
+            echo ""
+            echo "Install rustfmt:"
+            echo "  rustup component add rustfmt"
+            echo ""
+            echo "Or use our setup action with rustfmt included:"
+            echo "  - uses: firestoned/github-actions/rust/setup-rust-build@v1"
+            echo "    with:"
+            echo "      components: rustfmt"
+            echo ""
+            VERIFICATION_FAILED=1
+          else
+            RUSTFMT_VERSION=$(rustfmt --version)
+            echo "rustfmt-version=$RUSTFMT_VERSION" >> $GITHUB_OUTPUT
+            echo "✓ rustfmt: $RUSTFMT_VERSION"
+          fi
+        fi
+
+        # Verify clippy
+        if [ "${{ inputs.require-clippy }}" = "true" ]; then
+          if ! command -v cargo-clippy &> /dev/null; then
+            echo "❌ Error: clippy component not found"
+            echo ""
+            echo "Install clippy:"
+            echo "  rustup component add clippy"
+            echo ""
+            echo "Or use our setup action with clippy included:"
+            echo "  - uses: firestoned/github-actions/rust/setup-rust-build@v1"
+            echo "    with:"
+            echo "      components: clippy"
+            echo ""
+            VERIFICATION_FAILED=1
+          else
+            CLIPPY_VERSION=$(cargo clippy --version)
+            echo "clippy-version=$CLIPPY_VERSION" >> $GITHUB_OUTPUT
+            echo "✓ clippy: $CLIPPY_VERSION"
+          fi
+        fi
+
+        # Verify llvm-tools-preview
+        if [ "${{ inputs.require-llvm-tools }}" = "true" ]; then
+          if ! rustup component list --installed | grep -q "llvm-tools-preview"; then
+            echo "❌ Error: llvm-tools-preview component not found"
+            echo ""
+            echo "Install llvm-tools-preview:"
+            echo "  rustup component add llvm-tools-preview"
+            echo ""
+            echo "Or use our setup action:"
+            echo "  - uses: firestoned/github-actions/rust/setup-rust-build@v1"
+            echo "    with:"
+            echo "      components: llvm-tools-preview"
+            echo ""
+            VERIFICATION_FAILED=1
+          else
+            echo "✓ llvm-tools-preview: installed"
+          fi
+        fi
+
+        # Exit with error if any verification failed
+        if [ $VERIFICATION_FAILED -eq 1 ]; then
+          exit 1
+        fi

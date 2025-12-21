@@ -17,6 +17,11 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Verify Rust toolchain
+      uses: firestoned/github-actions/rust/verify-toolchain@main
+      with:
+        require-cargo: true
+
     - name: Build (release) - x86_64
       if: inputs.target == 'x86_64-unknown-linux-gnu'
       shell: bash

@@ -83,10 +83,13 @@ jobs:
 
 ### Rust Ecosystem
 
+> **Note**: All Rust actions require the Rust toolchain to be installed. Use [`rust/setup-rust-build`](rust/setup-rust-build/README.md) or [actions-rust-lang/setup-rust-toolchain](https://github.com/actions-rust-lang/setup-rust-toolchain) before using these actions.
+
 | Action | Description | Documentation |
 |--------|-------------|---------------|
 | [`rust/cache-cargo`](rust/cache-cargo/README.md) | Cache Cargo registry, index, and build artifacts | [📖 Docs](rust/cache-cargo/README.md) |
 | [`rust/setup-rust-build`](rust/setup-rust-build/README.md) | Set up Rust toolchain with cross-compilation support | [📖 Docs](rust/setup-rust-build/README.md) |
+| [`rust/verify-toolchain`](rust/verify-toolchain/README.md) | Verify Rust toolchain and required components are installed | [📖 Docs](rust/verify-toolchain/README.md) |
 | [`rust/build-binary`](rust/build-binary/README.md) | Build Rust binaries for x86_64 and ARM64 | [📖 Docs](rust/build-binary/README.md) |
 | [`rust/build-library`](rust/build-library/README.md) | Build Rust libraries with flexible profile and feature control | [📖 Docs](rust/build-library/README.md) |
 | [`rust/lint`](rust/lint/README.md) | Run cargo fmt and cargo clippy for code quality | [📖 Docs](rust/lint/README.md) |
@@ -299,7 +302,7 @@ These actions are built with the following principles:
 
 | Language | Actions Available | Count |
 |----------|-------------------|-------|
-| **Rust** | cache-cargo, setup-rust-build, build-binary, build-library, lint, security-scan, generate-sbom | 7 |
+| **Rust** | cache-cargo, setup-rust-build, verify-toolchain, build-binary, build-library, lint, security-scan, generate-sbom | 8 |
 | **Go** | trivy-scan, cosign-sign, verify-signed-commits, license-check, setup-docker, extract-version | 6 |
 | **Python** | trivy-scan, cosign-sign, verify-signed-commits, license-check, setup-docker, extract-version | 6 |
 | **Node.js** | trivy-scan, cosign-sign, verify-signed-commits, license-check, setup-docker, extract-version | 6 |

@@ -42,6 +42,24 @@ A composite GitHub Action that sets up a complete Rust build environment with in
     cache-key: my-feature-branch
 ```
 
+### Custom Components
+
+```yaml
+# Minimal setup without linting tools
+- name: Setup Rust (build only)
+  uses: your-org/github-actions/rust/setup-rust-build@v1
+  with:
+    target: x86_64-unknown-linux-gnu
+    components: ''
+
+# Add additional components
+- name: Setup Rust with extra tools
+  uses: your-org/github-actions/rust/setup-rust-build@v1
+  with:
+    target: x86_64-unknown-linux-gnu
+    components: 'rustfmt, clippy, llvm-tools-preview'
+```
+
 ### Multi-Target Matrix Build
 
 ```yaml
@@ -71,6 +89,7 @@ jobs:
 | `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`) | Yes | N/A |
 | `cache-key` | Additional cache key component for isolating caches by branch or feature | No | `''` |
 | `cross-version` | Version of `cross` to install for ARM64 builds (e.g., `v0.2.5`) | No | `v0.2.5` |
+| `components` | Comma-separated list of Rust components to install (e.g., `rustfmt, clippy`) | No | `rustfmt, clippy` |
 
 ## How It Works
 
@@ -78,8 +97,9 @@ jobs:
 
 1. Installs Rust toolchain using `dtolnay/rust-toolchain@stable`
 2. Adds the specified target to the toolchain
-3. Caches Rust dependencies using `Swatinem/rust-cache@v2`
-4. Uses target and cache-key for cache isolation
+3. Installs components (default: `rustfmt, clippy`)
+4. Caches Rust dependencies using `Swatinem/rust-cache@v2`
+5. Uses target and cache-key for cache isolation
 
 ### ARM64 Builds (aarch64)
 

@@ -58,6 +58,13 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Verify Rust toolchain
+      uses: firestoned/github-actions/rust/verify-toolchain@main
+      with:
+        require-cargo: true
+        require-rustfmt: true
+        require-clippy: true
+
     - name: Check formatting
       id: fmt
       if: inputs.check-fmt == 'true'
