@@ -58,6 +58,11 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Verify Rust toolchain
+      uses: firestoned/github-actions/rust/verify-toolchain@main
+      with:
+        require-cargo: true
+
     - name: Determine build command
       id: config
       shell: bash

@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **rust/build-library** - Build Rust libraries with flexible profile and feature control
 - **rust/lint** - Run cargo fmt and cargo clippy for code quality checks
+- **rust/verify-toolchain** - Reusable action to verify Rust toolchain and components are installed
+  - Verify cargo, rustfmt, clippy, or llvm-tools-preview
+  - Outputs version information for all verified tools
+  - Clear, actionable error messages with setup instructions
+  - Used internally by other Rust actions (lint, build-binary, build-library, generate-sbom)
+- **rust/lint** features:
   - Configurable fmt and clippy checks (can enable/disable individually)
   - Custom clippy arguments and lint levels
   - Feature support (all-features, specific features, no-default-features)
@@ -28,8 +34,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Complete workspace workflow examples in documentation
 
 ### Changed
+- **rust/setup-rust-build** now includes `rustfmt` and `clippy` components by default
+  - Ensures all Rust tooling is available for linting and code quality checks
+  - Added new `components` input parameter for customization (default: `rustfmt, clippy`)
+  - Users can customize components or set to empty string for minimal installation
+  - No breaking changes - existing workflows continue to work
 - **rust/generate-sbom** now supports Cargo workspaces with `--workspace` and `--package` flags
+- **rust/lint**, **rust/build-binary**, **rust/build-library**, and **rust/generate-sbom** now use **rust/verify-toolchain** action
+  - Provides consistent toolchain verification across all Rust actions
+  - Reduces code duplication
+  - Clearer error messages with actionable guidance
 - Updated generate-sbom README with workspace examples and best practices
+- Updated all Rust action documentation to prioritize `rust/setup-rust-build` over external setup actions
 
 ## [1.0.0] - 2025-12-18
 

@@ -2,6 +2,22 @@
 
 A composite GitHub Action that runs `cargo fmt` and `cargo clippy` to check code formatting and quality for Rust projects.
 
+## Prerequisites
+
+This action requires the Rust toolchain with `rustfmt` and `clippy` components to be installed. Set up Rust before using this action:
+
+```yaml
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
+```
+
+Alternatively, you can use the community action:
+
+```yaml
+- uses: actions-rust-lang/setup-rust-toolchain@v1
+  with:
+    components: rustfmt, clippy
+```
+
 ## Features
 
 - **Automated Formatting Checks** - Verify code follows Rust style guidelines with `cargo fmt`
@@ -17,6 +33,9 @@ A composite GitHub Action that runs `cargo fmt` and `cargo clippy` to check code
 ### Basic Example
 
 ```yaml
+- name: Setup Rust
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
+
 - name: Lint Rust code
   uses: firestoned/github-actions/rust/lint@v1
 ```
@@ -164,6 +183,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
 
       - name: Cache dependencies
         uses: firestoned/github-actions/rust/cache-cargo@v1
@@ -352,13 +374,38 @@ avoid-breaking-exported-api = true
 
 ## Troubleshooting
 
+### Rust Toolchain Not Found
+
+**Problem**: Error "Rust toolchain not found"
+
+**Solution**: Add Rust setup before the lint action:
+```yaml
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
+
+- uses: firestoned/github-actions/rust/lint@v1
+```
+
+### rustfmt or clippy Component Missing
+
+**Problem**: Error "rustfmt component not found" or "clippy component not found"
+
+**Solution**: Ensure components are installed. Our setup action includes them by default:
+```yaml
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
+```
+
+Or manually:
+```bash
+rustup component add rustfmt clippy
+```
+
 ### Formatting Check Fails
 
 **Problem**: `cargo fmt --check` fails in CI but passes locally
 
 **Solution**: Ensure same Rust version and rustfmt.toml:
 ```yaml
-- uses: actions-rust-lang/setup-rust-toolchain@v1
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     toolchain: stable
     components: rustfmt, clippy
