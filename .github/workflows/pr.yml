@@ -720,9 +720,23 @@ jobs:
         run: |
           cd test-sbom
           if [ "${{ matrix.format }}" = "json" ]; then
-            ls -lh *.cdx.json 2>/dev/null || ls -lh test-sbom_*.cdx.json || { echo "No JSON SBOM found"; exit 1; }
+            if compgen -G "*.cdx.json" > /dev/null 2>&1; then
+              ls -lh *.cdx.json
+            elif compgen -G "test-sbom_*.cdx.json" > /dev/null 2>&1; then
+              ls -lh test-sbom_*.cdx.json
+            else
+              echo "No JSON SBOM found"
+              exit 1
+            fi
           else
-            ls -lh *.cdx.xml 2>/dev/null || ls -lh test-sbom_*.cdx.xml || { echo "No XML SBOM found"; exit 1; }
+            if compgen -G "*.cdx.xml" > /dev/null 2>&1; then
+              ls -lh *.cdx.xml
+            elif compgen -G "test-sbom_*.cdx.xml" > /dev/null 2>&1; then
+              ls -lh test-sbom_*.cdx.xml
+            else
+              echo "No XML SBOM found"
+              exit 1
+            fi
           fi
 
   test-generate-sbom-workspace:
@@ -788,7 +802,12 @@ jobs:
           echo "Searching for SBOMs in workspace..."
 
           # Check root
-          ls -lh *.cdx.json 2>/dev/null || true
+          if compgen -G "*.cdx.json" > /dev/null 2>&1; then
+            echo "Root SBOMs:"
+            for file in *.cdx.json; do
+              ls -lh "$file"
+            done
+          fi
 
           # Check each crate
           find . -name "*.cdx.json" -not -path "*/target/*" -type f | while read sbom; do
