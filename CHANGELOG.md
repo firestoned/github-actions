@@ -22,8 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Workspace support (entire workspace or specific packages)
   - Fail-on-warnings option
   - Detailed step summaries and outputs
-- Comprehensive test coverage for build-library action (dev/release profiles, feature flags)
-- Comprehensive test coverage for lint action (well-formatted, badly-formatted, clippy warnings)
+- Comprehensive test coverage for all Rust actions:
+  - **rust/cache-cargo** - Cache creation verification
+  - **rust/setup-rust-build** - Multi-target setup (x86_64, ARM64), custom components
+  - **rust/verify-toolchain** - Component verification, outputs validation, failure scenarios
+  - **rust/build-binary** - Binary compilation and execution
+  - **rust/build-library** - Dev/release profiles, feature flags
+  - **rust/lint** - Well-formatted, badly-formatted, clippy warnings
+  - **rust/generate-sbom** - Single crate, workspace, multiple formats (JSON/XML)
+  - **rust/security-scan** - cargo-audit integration
+- Comprehensive test coverage for security actions:
+  - **security/trivy-scan** - Container scanning, SARIF output
+  - **security/cosign-sign** - Installation verification
+  - **security/license-check** - SPDX header validation
+  - **security/verify-signed-commits** - Commit signature verification
 - Example library CI workflow demonstrating feature matrix testing
 - Release workflow automation (triggers on release published event)
 - RELEASE_PROCESS.md documentation for release workflow

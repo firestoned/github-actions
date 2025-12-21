@@ -64,9 +64,11 @@ runs:
         BASE_CMD="cargo cyclonedx"
 
         # Add package or workspace flags
+        # Note: cargo-cyclonedx 0.5.7 doesn't have --workspace flag
+        # Use --all for workspace-wide generation
         if [ "${{ inputs.workspace }}" = "true" ]; then
-          BASE_CMD="$BASE_CMD --workspace"
-          echo "Generating SBOM for entire workspace"
+          BASE_CMD="$BASE_CMD --all"
+          echo "Generating SBOM for entire workspace (using --all)"
         elif [ -n "${{ inputs.package }}" ]; then
           BASE_CMD="$BASE_CMD --package ${{ inputs.package }}"
           echo "Generating SBOM for package: ${{ inputs.package }}"
@@ -100,14 +102,40 @@ runs:
         # List generated files for verification
         echo ""
         echo "Generated SBOM files:"
-        ls -lh *.cdx.* 2>/dev/null || echo "No SBOM files found in current directory"
-        if [ -n "${{ inputs.target }}" ] && [ -d "target/${{ inputs.target }}/release" ]; then
-          echo ""
-          echo "Target-specific SBOM files:"
-          ls -lh target/${{ inputs.target }}/release/*.cdx.* 2>/dev/null || true
+
+        # Check root directory
+        if ls *.cdx.* 2>/dev/null; then
+          echo "Root directory SBOMs:"
+          ls -lh *.cdx.*
         fi
+
+        # Check each crate directory (for workspace with describe=crate)
+        # cargo-cyclonedx generates SBOMs in each crate's directory
         if [ "${{ inputs.workspace }}" = "true" ] || [ -n "${{ inputs.package }}" ]; then
           echo ""
-          echo "Workspace/package SBOM files in target directories:"
-          find target -name "*.cdx.*" -type f 2>/dev/null || true
+          echo "Searching for SBOMs in workspace crates..."
+          # Find all Cargo.toml files (excluding target dirs and root if workspace)
+          find . -name "Cargo.toml" -not -path "*/target/*" -not -path "*/.git/*" | while read cargo_file; do
+            crate_dir=$(dirname "$cargo_file")
+            if ls "$crate_dir"/*.cdx.* 2>/dev/null; then
+              echo ""
+              echo "SBOMs in $crate_dir:"
+              ls -lh "$crate_dir"/*.cdx.*
+            fi
+          done
         fi
+
+        # Also check target directories (for describe=binaries or all-cargo-targets)
+        if [ "${{ inputs.describe }}" = "binaries" ] || [ "${{ inputs.describe }}" = "all-cargo-targets" ]; then
+          echo ""
+          echo "Searching for SBOMs in target directories..."
+          find target -name "*.cdx.*" -type f 2>/dev/null | while read sbom_file; do
+            echo "  $(ls -lh "$sbom_file")"
+          done
+        fi
+
+        # Summary count
+        echo ""
+        total_sboms=$(find . -name "*.cdx.*" -not -path "*/target/*" -not -path "*/.git/*" -type f 2>/dev/null | wc -l | tr -d ' ')
+        target_sboms=$(find target -name "*.cdx.*" -type f 2>/dev/null | wc -l | tr -d ' ')
+        echo "Total SBOMs found: $total_sboms in workspace, $target_sboms in target/"
