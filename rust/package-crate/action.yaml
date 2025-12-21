@@ -1,0 +1,74 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: 'Package Rust Crate'
+description: 'Package a Rust crate for publishing to crates.io, supporting both workspace and standalone crates'
+author: 'Erick Bourgeois'
+
+inputs:
+  package:
+    description: 'Package name to package (for workspace crates, use --package flag)'
+    required: false
+    default: ''
+  workspace:
+    description: 'Whether this is a workspace crate (uses --package flag)'
+    required: false
+    default: 'false'
+  allow-dirty:
+    description: 'Allow packaging with uncommitted changes'
+    required: false
+    default: 'true'
+  cargo-args:
+    description: 'Additional arguments to pass to cargo package'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify Rust toolchain
+      uses: firestoned/github-actions/rust/verify-toolchain@main
+      with:
+        require-cargo: true
+
+    - name: Package crate
+      shell: bash
+      run: |
+        set -e
+
+        # Build cargo command
+        CMD="cargo package --verbose"
+
+        # Add package flag for workspace crates
+        if [ "${{ inputs.workspace }}" = "true" ] && [ -n "${{ inputs.package }}" ]; then
+          CMD="$CMD --package ${{ inputs.package }}"
+          echo "Packaging workspace crate: ${{ inputs.package }}"
+        elif [ -n "${{ inputs.package }}" ]; then
+          echo "WARNING: package specified but workspace=false. The package flag requires workspace=true."
+          echo "Packaging current crate in directory"
+        else
+          echo "Packaging current crate"
+        fi
+
+        # Add allow-dirty flag
+        if [ "${{ inputs.allow-dirty }}" = "true" ]; then
+          CMD="$CMD --allow-dirty"
+        fi
+
+        # Add any additional cargo arguments
+        if [ -n "${{ inputs.cargo-args }}" ]; then
+          CMD="$CMD ${{ inputs.cargo-args }}"
+        fi
+
+        echo "Running: $CMD"
+        $CMD
+
+        echo ""
+        echo "Package created successfully"
+
+        # List the packaged crate
+        if [ -d "target/package" ]; then
+          echo ""
+          echo "Packaged crate(s):"
+          ls -lh target/package/*.crate 2>/dev/null || echo "No .crate files found in target/package"
+        fi
