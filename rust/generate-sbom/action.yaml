@@ -117,7 +117,8 @@ runs:
           # Find all Cargo.toml files (excluding target dirs and root if workspace)
           find . -name "Cargo.toml" -not -path "*/target/*" -not -path "*/.git/*" | while read cargo_file; do
             crate_dir=$(dirname "$cargo_file")
-            if ls "$crate_dir"/*.cdx.* 2>/dev/null; then
+            # Check if SBOMs exist in this directory before trying to list them
+            if compgen -G "$crate_dir/*.cdx.*" > /dev/null 2>&1; then
               echo ""
               echo "SBOMs in $crate_dir:"
               ls -lh "$crate_dir"/*.cdx.*
