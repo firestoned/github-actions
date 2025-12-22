@@ -1,0 +1,85 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+
+name: 'Publish Rust Crate'
+description: 'Publish a Rust crate to crates.io, supporting both workspace and standalone crates'
+author: 'Erick Bourgeois'
+
+inputs:
+  package:
+    description: 'Package name to publish (for workspace crates, use --package flag)'
+    required: false
+    default: ''
+  workspace:
+    description: 'Whether this is a workspace crate (uses --package flag)'
+    required: false
+    default: 'false'
+  token:
+    description: 'crates.io API token (usually from secrets.CARGO_REGISTRY_TOKEN)'
+    required: true
+  allow-dirty:
+    description: 'Allow publishing with uncommitted changes'
+    required: false
+    default: 'true'
+  dry-run:
+    description: 'Perform a dry run without actually publishing'
+    required: false
+    default: 'false'
+  cargo-args:
+    description: 'Additional arguments to pass to cargo publish'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Verify Rust toolchain
+      uses: firestoned/github-actions/rust/verify-toolchain@main
+      with:
+        require-cargo: true
+
+    - name: Publish crate
+      shell: bash
+      run: |
+        set -e
+
+        # Build cargo command
+        CMD="cargo publish --token ${{ inputs.token }}"
+
+        # Add package flag for workspace crates
+        if [ "${{ inputs.workspace }}" = "true" ] && [ -n "${{ inputs.package }}" ]; then
+          CMD="$CMD --package ${{ inputs.package }}"
+          echo "Publishing workspace crate: ${{ inputs.package }}"
+        elif [ -n "${{ inputs.package }}" ]; then
+          echo "WARNING: package specified but workspace=false. The package flag requires workspace=true."
+          echo "Publishing current crate in directory"
+        else
+          echo "Publishing current crate"
+        fi
+
+        # Add allow-dirty flag
+        if [ "${{ inputs.allow-dirty }}" = "true" ]; then
+          CMD="$CMD --allow-dirty"
+        fi
+
+        # Add dry-run flag
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          CMD="$CMD --dry-run"
+          echo "DRY RUN MODE: Not actually publishing to crates.io"
+        fi
+
+        # Add any additional cargo arguments
+        if [ -n "${{ inputs.cargo-args }}" ]; then
+          CMD="$CMD ${{ inputs.cargo-args }}"
+        fi
+
+        echo "Running: cargo publish [token hidden] ..."
+        $CMD
+
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          echo ""
+          echo "✓ Dry run completed successfully"
+        else
+          echo ""
+          echo "✓ Published to crates.io successfully"
+        fi

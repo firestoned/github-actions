@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **rust/package-crate** - Package Rust crates for publishing to crates.io
+  - Workspace support with `--package` flag for workspace crates
+  - Handles workspace version inheritance (`version.workspace = true`)
+  - Configurable allow-dirty flag
+  - Additional cargo arguments support
+  - Verification output showing packaged `.crate` files
+- **rust/publish-crate** - Publish Rust crates to crates.io
+  - Workspace support with `--package` flag for workspace crates
+  - Handles workspace version inheritance (`version.workspace = true`)
+  - Secure token handling (hidden in logs)
+  - Dry-run mode for testing
+  - Configurable allow-dirty flag
+  - Additional cargo arguments support
 - **rust/build-library** - Build Rust libraries with flexible profile and feature control
 - **rust/lint** - Run cargo fmt and cargo clippy for code quality checks
 - **rust/verify-toolchain** - Reusable action to verify Rust toolchain and components are installed
