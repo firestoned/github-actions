@@ -17,7 +17,7 @@ A composite GitHub Action that sets up a complete Rust build environment with in
 
 ```yaml
 - name: Setup Rust build environment
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
 ```
@@ -26,7 +26,7 @@ A composite GitHub Action that sets up a complete Rust build environment with in
 
 ```yaml
 - name: Setup Rust build environment for ARM64
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: aarch64-unknown-linux-gnu
     cross-version: v0.2.5
@@ -36,7 +36,7 @@ A composite GitHub Action that sets up a complete Rust build environment with in
 
 ```yaml
 - name: Setup Rust build environment with custom cache
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
     cache-key: my-feature-branch
@@ -47,14 +47,14 @@ A composite GitHub Action that sets up a complete Rust build environment with in
 ```yaml
 # Minimal setup without linting tools
 - name: Setup Rust (build only)
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
     components: ''
 
 # Add additional components
 - name: Setup Rust with extra tools
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
     components: 'rustfmt, clippy, llvm-tools-preview'
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust build environment
-        uses: your-org/github-actions/rust/setup-rust-build@v1
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
         with:
           target: ${{ matrix.target }}
 
@@ -143,7 +143,7 @@ For a complete list, see the [Rust Platform Support](https://doc.rust-lang.org/n
 Always specify a `cross-version` for reproducible builds:
 
 ```yaml
-- uses: your-org/github-actions/rust/setup-rust-build@v1
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: aarch64-unknown-linux-gnu
     cross-version: v0.2.5
@@ -154,7 +154,7 @@ Always specify a `cross-version` for reproducible builds:
 For long-lived feature branches with different dependencies:
 
 ```yaml
-- uses: your-org/github-actions/rust/setup-rust-build@v1
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
     cache-key: ${{ github.ref_name }}
@@ -166,12 +166,12 @@ This action is designed to work seamlessly with the `rust/build-binary` action:
 
 ```yaml
 - name: Setup Rust environment
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: ${{ matrix.target }}
 
 - name: Build binary
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: ${{ matrix.target }}
 ```
@@ -271,7 +271,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: your-org/github-actions/rust/setup-rust-build@v1
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
         with:
           target: ${{ matrix.target }}
           cache-key: ${{ github.ref_name }}
@@ -291,7 +291,7 @@ jobs:
     toolchain: nightly
     targets: x86_64-unknown-linux-gnu
 
-- uses: your-org/github-actions/rust/setup-rust-build@v1
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
 ```

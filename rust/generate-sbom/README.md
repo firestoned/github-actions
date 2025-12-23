@@ -18,14 +18,14 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
 ```
 
 ### XML Format
 
 ```yaml
 - name: Generate SBOM (XML)
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     format: xml
 ```
@@ -34,7 +34,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM (both formats)
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     format: both
 ```
@@ -43,7 +43,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM for entire crate
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     describe: crate
 ```
@@ -52,7 +52,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM for binaries only
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     describe: binaries
 ```
@@ -61,7 +61,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM for all targets
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     describe: all-cargo-targets
 ```
@@ -70,7 +70,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM for ARM64
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     target: aarch64-unknown-linux-gnu
     describe: binaries
@@ -80,7 +80,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM for entire workspace
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     workspace: true
     format: both
@@ -90,7 +90,7 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
 
 ```yaml
 - name: Generate SBOM for specific workspace package
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     package: my-core-library
     format: json
@@ -106,17 +106,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: your-org/github-actions/rust/setup-rust-build@v1
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
         with:
           target: x86_64-unknown-linux-gnu
 
       - name: Build
-        uses: your-org/github-actions/rust/build-binary@v1
+        uses: firestoned/github-actions/rust/build-binary@v1
         with:
           target: x86_64-unknown-linux-gnu
 
       - name: Generate SBOM
-        uses: your-org/github-actions/rust/generate-sbom@v1
+        uses: firestoned/github-actions/rust/generate-sbom@v1
         with:
           format: both
           describe: crate
@@ -239,12 +239,12 @@ Always generate SBOM after building binaries:
 
 ```yaml
 - name: Build
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: x86_64-unknown-linux-gnu
 
 - name: Generate SBOM
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     target: x86_64-unknown-linux-gnu
 ```
@@ -254,7 +254,7 @@ Always generate SBOM after building binaries:
 For comprehensive supply chain visibility:
 
 ```yaml
-- uses: your-org/github-actions/rust/generate-sbom@v1
+- uses: firestoned/github-actions/rust/generate-sbom@v1
   with:
     describe: both
 ```
@@ -268,7 +268,7 @@ strategy:
   matrix:
     target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
 steps:
-  - uses: your-org/github-actions/rust/generate-sbom@v1
+  - uses: firestoned/github-actions/rust/generate-sbom@v1
     with:
       target: ${{ matrix.target }}
 ```
@@ -292,10 +292,10 @@ Cryptographically sign SBOMs for authenticity:
 
 ```yaml
 - name: Generate SBOM
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
 
 - name: Sign SBOM
-  uses: your-org/github-actions/security/cosign-sign@v1
+  uses: firestoned/github-actions/security/cosign-sign@v1
   with:
     artifact-path: my-app_1.0.0.cdx.json
 ```
@@ -312,7 +312,7 @@ Cryptographically sign SBOMs for authenticity:
   run: cargo build --release --target ${{ matrix.target }}
 
 - name: Then generate SBOM
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
 ```
 
 ### Wrong File Location
@@ -353,7 +353,7 @@ To add custom metadata, post-process the JSON:
 
 ```yaml
 - name: Generate SBOM
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
 
 - name: Add metadata
   run: |
@@ -482,7 +482,7 @@ Feed SBOM to vulnerability scanners:
 
 ```yaml
 - name: Generate SBOM
-  uses: your-org/github-actions/rust/generate-sbom@v1
+  uses: firestoned/github-actions/rust/generate-sbom@v1
 
 - name: Scan SBOM
   uses: anchore/sbom-action/scan@v0
@@ -567,7 +567,7 @@ strategy:
     target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu]
 steps:
   - name: Generate SBOM (once per target)
-    uses: your-org/github-actions/rust/generate-sbom@v1
+    uses: firestoned/github-actions/rust/generate-sbom@v1
     with:
       target: ${{ matrix.target }}
 ```
@@ -631,24 +631,24 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: your-org/github-actions/rust/setup-rust-build@v1
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
         with:
           target: ${{ matrix.target }}
 
       - name: Build
-        uses: your-org/github-actions/rust/build-binary@v1
+        uses: firestoned/github-actions/rust/build-binary@v1
         with:
           target: ${{ matrix.target }}
 
       - name: Generate SBOM
-        uses: your-org/github-actions/rust/generate-sbom@v1
+        uses: firestoned/github-actions/rust/generate-sbom@v1
         with:
           format: both
           describe: both
           target: ${{ matrix.target }}
 
       - name: Sign SBOM
-        uses: your-org/github-actions/security/cosign-sign@v1
+        uses: firestoned/github-actions/security/cosign-sign@v1
         with:
           artifact-path: target/${{ matrix.target }}/release/my-app_*.cdx.json
 
@@ -671,7 +671,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate SBOM
-        uses: your-org/github-actions/rust/generate-sbom@v1
+        uses: firestoned/github-actions/rust/generate-sbom@v1
 
       - name: Install validator
         run: npm install -g @cyclonedx/cyclonedx-cli

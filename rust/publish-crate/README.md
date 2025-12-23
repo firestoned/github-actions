@@ -6,7 +6,8 @@ Composite action to publish a Rust crate to crates.io. Supports both workspace a
 
 - ✅ **Workspace Support**: Handles workspace crates with `version.workspace = true`
 - ✅ **Standalone Support**: Works with single-crate projects
-- ✅ **Secure Token Handling**: Token hidden in logs
+- ✅ **Modern Authentication**: Uses `cargo login` with environment variables (recommended approach)
+- ✅ **Secure Token Handling**: Token passed via environment variable, never exposed in command line
 - ✅ **Allow Dirty**: Optional flag to publish with uncommitted changes
 - ✅ **Dry Run**: Test publishing without actually uploading
 - ✅ **Flexible Arguments**: Pass additional cargo arguments
@@ -148,9 +149,17 @@ This action runs `cargo publish --package <name>` from the workspace root, allow
 
 ## Security
 
+- The action uses `cargo login` with the token passed via `CARGO_REGISTRY_TOKEN` environment variable
 - The `token` input is masked in GitHub Actions logs
-- The action displays `[token hidden]` in the log output instead of the actual token
+- Token is never exposed in command-line arguments
 - Store your crates.io token in repository secrets as `CARGO_REGISTRY_TOKEN`
+
+## How It Works
+
+1. **Authentication**: Runs `cargo login` with token from `CARGO_REGISTRY_TOKEN` environment variable
+2. **Publishing**: Runs `cargo publish` (uses credentials from login step)
+3. **Workspace Handling**: Uses `--package` flag when `workspace: true` is specified
+4. **Dry Run**: Adds `--dry-run` flag when enabled for testing without publishing
 
 ## Publishing Order
 

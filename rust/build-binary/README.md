@@ -17,12 +17,12 @@ A composite GitHub Action that intelligently builds Rust binaries for specified 
 
 ```yaml
 - name: Setup Rust environment
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: x86_64-unknown-linux-gnu
 
 - name: Build binary
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: x86_64-unknown-linux-gnu
 ```
@@ -31,12 +31,12 @@ A composite GitHub Action that intelligently builds Rust binaries for specified 
 
 ```yaml
 - name: Setup Rust environment
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: aarch64-unknown-linux-gnu
 
 - name: Build binary
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: aarch64-unknown-linux-gnu
 ```
@@ -56,12 +56,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: your-org/github-actions/rust/setup-rust-build@v1
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
         with:
           target: ${{ matrix.target }}
 
       - name: Build
-        uses: your-org/github-actions/rust/build-binary@v1
+        uses: firestoned/github-actions/rust/build-binary@v1
         with:
           target: ${{ matrix.target }}
 
@@ -125,12 +125,12 @@ This action requires the build environment to be set up first:
 
 ```yaml
 - name: Setup Rust
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: ${{ matrix.target }}
 
 - name: Build
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: ${{ matrix.target }}
 ```
@@ -144,11 +144,11 @@ env:
   BUILD_TARGET: x86_64-unknown-linux-gnu
 
 steps:
-  - uses: your-org/github-actions/rust/setup-rust-build@v1
+  - uses: firestoned/github-actions/rust/setup-rust-build@v1
     with:
       target: ${{ env.BUILD_TARGET }}
 
-  - uses: your-org/github-actions/rust/build-binary@v1
+  - uses: firestoned/github-actions/rust/build-binary@v1
     with:
       target: ${{ env.BUILD_TARGET }}
 ```
@@ -173,7 +173,7 @@ Use the standard Rust target directory structure:
 
 **Solution**: Ensure `rust/setup-rust-build` runs first:
 ```yaml
-- uses: your-org/github-actions/rust/setup-rust-build@v1
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: ${{ matrix.target }}
 ```
@@ -225,7 +225,7 @@ path: target/${{ matrix.target }}/release/my-app
 The `rust/setup-rust-build` action handles caching automatically. Ensure you use it:
 
 ```yaml
-- uses: your-org/github-actions/rust/setup-rust-build@v1
+- uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: ${{ matrix.target }}
     cache-key: ${{ github.ref_name }}
@@ -282,7 +282,7 @@ Reduce binary size:
 
 ```yaml
 - name: Build and strip
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: ${{ matrix.target }}
 
@@ -350,12 +350,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: your-org/github-actions/rust/setup-rust-build@v1
+        uses: firestoned/github-actions/rust/setup-rust-build@v1
         with:
           target: ${{ matrix.target }}
 
       - name: Build binary
-        uses: your-org/github-actions/rust/build-binary@v1
+        uses: firestoned/github-actions/rust/build-binary@v1
         with:
           target: ${{ matrix.target }}
 
@@ -374,7 +374,7 @@ jobs:
 
 ```yaml
 - name: Setup Rust
-  uses: your-org/github-actions/rust/setup-rust-build@v1
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: ${{ matrix.target }}
 
@@ -382,7 +382,7 @@ jobs:
   run: cargo test --target ${{ matrix.target }}
 
 - name: Build binary
-  uses: your-org/github-actions/rust/build-binary@v1
+  uses: firestoned/github-actions/rust/build-binary@v1
   with:
     target: ${{ matrix.target }}
 ```
