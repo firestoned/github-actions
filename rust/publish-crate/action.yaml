@@ -38,13 +38,23 @@ runs:
       with:
         require-cargo: true
 
+    - name: Login to crates.io
+      shell: bash
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ inputs.token }}
+      run: |
+        # Use cargo login with token from environment variable
+        # This is the recommended approach instead of --token flag
+        cargo login
+
     - name: Publish crate
       shell: bash
       run: |
         set -e
 
         # Build cargo command
-        CMD="cargo publish --token ${{ inputs.token }}"
+        # Note: Authentication is handled by cargo login step above
+        CMD="cargo publish"
 
         # Add package flag for workspace crates
         if [ "${{ inputs.workspace }}" = "true" ] && [ -n "${{ inputs.package }}" ]; then
@@ -73,7 +83,7 @@ runs:
           CMD="$CMD ${{ inputs.cargo-args }}"
         fi
 
-        echo "Running: cargo publish [token hidden] ..."
+        echo "Running: $CMD"
         $CMD
 
         if [ "${{ inputs.dry-run }}" = "true" ]; then
