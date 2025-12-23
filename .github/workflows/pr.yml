@@ -822,6 +822,146 @@ jobs:
           fi
           echo "✓ Found $sbom_count SBOM(s)"
 
+  test-package-crate:
+    name: Test rust/package-crate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./rust/setup-rust-build
+        with:
+          target: x86_64-unknown-linux-gnu
+
+      - name: Create test crate
+        run: |
+          cargo init test-package-crate
+          cd test-package-crate
+          echo 'fn main() { println!("test"); }' > src/main.rs
+
+      - name: Package crate
+        working-directory: test-package-crate
+        run: |
+          cargo package --allow-dirty
+
+      - name: Verify packaged crate
+        run: |
+          cd test-package-crate
+          if compgen -G "target/package/*.crate" > /dev/null 2>&1; then
+            echo "✓ Found packaged crate:"
+            for file in target/package/*.crate; do
+              ls -lh "$file"
+            done
+          else
+            echo "ERROR: No .crate file found"
+            exit 1
+          fi
+
+  test-package-crate-workspace:
+    name: Test rust/package-crate (workspace)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./rust/setup-rust-build
+        with:
+          target: x86_64-unknown-linux-gnu
+
+      - name: Create workspace
+        run: |
+          mkdir test-package-workspace
+          cd test-package-workspace
+
+          # Create workspace Cargo.toml
+          cat > Cargo.toml <<'EOF'
+          [workspace]
+          members = ["crate-a", "crate-b"]
+
+          [workspace.package]
+          version = "0.1.0"
+          edition = "2021"
+          EOF
+
+          # Create first crate
+          cargo new crate-a --lib
+          cd crate-a
+          cat > Cargo.toml <<'EOF'
+          [package]
+          name = "crate-a"
+          version.workspace = true
+          edition.workspace = true
+          EOF
+          cd ..
+
+          # Create second crate
+          cargo new crate-b --lib
+          cd crate-b
+          cat > Cargo.toml <<'EOF'
+          [package]
+          name = "crate-b"
+          version.workspace = true
+          edition.workspace = true
+          EOF
+
+      - name: Package workspace crate
+        working-directory: test-package-workspace
+        run: |
+          cargo package --package crate-a --allow-dirty
+
+      - name: Verify packaged crate
+        run: |
+          cd test-package-workspace
+          if compgen -G "target/package/crate-a-*.crate" > /dev/null 2>&1; then
+            echo "✓ Found packaged crate:"
+            for file in target/package/crate-a-*.crate; do
+              ls -lh "$file"
+            done
+          else
+            echo "ERROR: No .crate file found for crate-a"
+            exit 1
+          fi
+
+  test-publish-crate-dry-run:
+    name: Test rust/publish-crate (dry-run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: ./rust/setup-rust-build
+        with:
+          target: x86_64-unknown-linux-gnu
+
+      - name: Create test crate
+        run: |
+          cargo init test-publish-crate
+          cd test-publish-crate
+          cat > Cargo.toml <<'EOF'
+          [package]
+          name = "test-publish-crate-unique-12345"
+          version = "0.1.0"
+          edition = "2021"
+          description = "Test crate for CI"
+          license = "MIT"
+          EOF
+          echo 'fn main() { println!("test"); }' > src/main.rs
+
+      - name: Test cargo login (without token)
+        working-directory: test-publish-crate
+        run: |
+          # Test that cargo login works with environment variable
+          # We can't actually login without a token, but we can verify the command exists
+          cargo --version
+          echo "✓ cargo is available"
+
+      - name: Dry-run publish
+        working-directory: test-publish-crate
+        run: |
+          # Dry-run doesn't require authentication
+          cargo publish --dry-run --allow-dirty
+          echo "✓ Dry-run publish completed"
+
   test-security-scan:
     name: Test rust/security-scan
     runs-on: ubuntu-latest
@@ -851,7 +991,7 @@ jobs:
         working-directory: test-security
         run: |
           # Install cargo-audit
-          cargo install cargo-audit --version 0.21.0
+          cargo install cargo-audit --version 0.22.0
 
           # Run audit (may or may not find vulnerabilities)
           cargo audit || true

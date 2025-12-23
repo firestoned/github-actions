@@ -18,14 +18,14 @@ A composite GitHub Action that scans Rust dependencies for known security vulner
 
 ```yaml
 - name: Security scan
-  uses: your-org/github-actions/rust/security-scan@v1
+  uses: firestoned/github-actions/rust/security-scan@v1
 ```
 
 ### Custom cargo-audit Version
 
 ```yaml
 - name: Security scan
-  uses: your-org/github-actions/rust/security-scan@v1
+  uses: firestoned/github-actions/rust/security-scan@v1
   with:
     cargo-audit-version: '0.21.0'
 ```
@@ -34,7 +34,7 @@ A composite GitHub Action that scans Rust dependencies for known security vulner
 
 ```yaml
 - name: Security scan
-  uses: your-org/github-actions/rust/security-scan@v1
+  uses: firestoned/github-actions/rust/security-scan@v1
   with:
     upload-artifact-name: 'security-audit-${{ github.run_id }}'
 ```
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Security vulnerability scan
-        uses: your-org/github-actions/rust/security-scan@v1
+        uses: firestoned/github-actions/rust/security-scan@v1
 
       - name: Download audit report
         if: always()
@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: your-org/github-actions/rust/security-scan@v1
+      - uses: firestoned/github-actions/rust/security-scan@v1
 
   build:
     needs: security
@@ -386,7 +386,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Rust security scan
-        uses: your-org/github-actions/rust/security-scan@v1
+        uses: firestoned/github-actions/rust/security-scan@v1
         with:
           cargo-audit-version: '0.21.0'
           upload-artifact-name: 'security-audit-${{ github.run_id }}'
@@ -416,7 +416,7 @@ jobs:
         run: cargo update
 
       - name: Security scan
-        uses: your-org/github-actions/rust/security-scan@v1
+        uses: firestoned/github-actions/rust/security-scan@v1
 
       - name: Create PR if vulnerabilities fixed
         if: success()

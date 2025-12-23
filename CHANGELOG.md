@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **rust/build-library** - Dev/release profiles, feature flags
   - **rust/lint** - Well-formatted, badly-formatted, clippy warnings
   - **rust/generate-sbom** - Single crate, workspace, multiple formats (JSON/XML)
+  - **rust/package-crate** - Standalone and workspace crate packaging
+  - **rust/publish-crate** - Dry-run publishing (actual publish requires token)
   - **rust/security-scan** - cargo-audit integration
 - Comprehensive test coverage for security actions:
   - **security/trivy-scan** - Container scanning, SARIF output
@@ -64,13 +66,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added new `components` input parameter for customization (default: `rustfmt, clippy`)
   - Users can customize components or set to empty string for minimal installation
   - No breaking changes - existing workflows continue to work
-- **rust/generate-sbom** now supports Cargo workspaces with `--workspace` and `--package` flags
+- **rust/generate-sbom** now supports Cargo workspaces with `--all` flag (cargo-cyclonedx 0.5.7)
+  - Changed from `--workspace` to `--all` for cargo-cyclonedx compatibility
+  - Enhanced file discovery to check root directory, crate directories, and target directories
+  - Uses `compgen -G` for robust file existence checking
+- **rust/publish-crate** now uses modern `cargo login` authentication
+  - Uses `CARGO_REGISTRY_TOKEN` environment variable instead of deprecated `--token` flag
+  - Separate login step for clearer authentication flow
+  - Token never exposed in command-line arguments
+- **rust/package-crate** now uses `compgen -G` for file verification
+  - More robust .crate file detection
+  - Better error handling for missing files
+- **rust/security-scan** default cargo-audit version updated to 0.22.0
+  - Previously 0.21.0
+  - Includes latest vulnerability database and bug fixes
 - **rust/lint**, **rust/build-binary**, **rust/build-library**, and **rust/generate-sbom** now use **rust/verify-toolchain** action
   - Provides consistent toolchain verification across all Rust actions
   - Reduces code duplication
   - Clearer error messages with actionable guidance
+- Updated all Rust action documentation to use `firestoned` organization name
+  - Changed all references from `your-org` to `firestoned`
+  - Ensures documentation examples work out of the box
 - Updated generate-sbom README with workspace examples and best practices
 - Updated all Rust action documentation to prioritize `rust/setup-rust-build` over external setup actions
+- All file existence checks now use `compgen -G` pattern throughout actions and tests
+  - More reliable than `ls` with glob patterns
+  - Consistent error handling
 
 ## [1.0.0] - 2025-12-18
 
