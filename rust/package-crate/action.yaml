@@ -70,5 +70,11 @@ runs:
         if [ -d "target/package" ]; then
           echo ""
           echo "Packaged crate(s):"
-          ls -lh target/package/*.crate 2>/dev/null || echo "No .crate files found in target/package"
+          if compgen -G "target/package/*.crate" > /dev/null 2>&1; then
+            for file in target/package/*.crate; do
+              ls -lh "$file"
+            done
+          else
+            echo "No .crate files found in target/package"
+          fi
         fi
