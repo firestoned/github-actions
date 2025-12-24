@@ -41,8 +41,21 @@ runs:
         key: ${{ inputs.target }}-${{ inputs.cache-key }}
         cache-on-failure: true
 
+    - name: Determine if cross is needed
+      id: needs-cross
+      shell: bash
+      run: |
+        case "${{ inputs.target }}" in
+          aarch64-unknown-linux-gnu|aarch64-pc-windows-msvc)
+            echo "needed=true" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "needed=false" >> $GITHUB_OUTPUT
+            ;;
+        esac
+
     - name: Cache cross binary
-      if: inputs.target == 'aarch64-unknown-linux-gnu'
+      if: steps.needs-cross.outputs.needed == 'true'
       id: cache-cross
       uses: actions/cache@v4
       with:
@@ -51,15 +64,15 @@ runs:
         restore-keys: |
           ${{ runner.os }}-cross-
 
-    - name: Install cross for ARM64 builds
-      if: inputs.target == 'aarch64-unknown-linux-gnu' && steps.cache-cross.outputs.cache-hit != 'true'
+    - name: Install cross for cross-compilation builds
+      if: steps.needs-cross.outputs.needed == 'true' && steps.cache-cross.outputs.cache-hit != 'true'
       shell: bash
       run: |
         cargo install cross --git https://github.com/cross-rs/cross --tag ${{ inputs.cross-version }}
         cross --version
 
-    - name: Verify Docker for cross (ARM64)
-      if: inputs.target == 'aarch64-unknown-linux-gnu'
+    - name: Verify Docker for cross
+      if: steps.needs-cross.outputs.needed == 'true'
       shell: bash
       run: |
         docker --version

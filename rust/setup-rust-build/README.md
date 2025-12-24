@@ -6,9 +6,10 @@ A composite GitHub Action that sets up a complete Rust build environment with in
 
 - Installs Rust toolchain with specified target support
 - Intelligent caching of Rust dependencies using `rust-cache`
-- Automatic setup of `cross` for ARM64 builds
+- Automatic setup of `cross` for ARM64 Linux and Windows builds
 - Binary caching for `cross` to speed up workflow runs
 - Docker verification for cross-compilation
+- Support for Linux, Windows (MSVC and GNU), and cross-compilation targets
 - Configurable cache keys for custom cache isolation
 
 ## Usage
@@ -22,13 +23,32 @@ A composite GitHub Action that sets up a complete Rust build environment with in
     target: x86_64-unknown-linux-gnu
 ```
 
-### ARM64 Cross-Compilation
+### ARM64 Linux Cross-Compilation
 
 ```yaml
-- name: Setup Rust build environment for ARM64
+- name: Setup Rust build environment for ARM64 Linux
   uses: firestoned/github-actions/rust/setup-rust-build@v1
   with:
     target: aarch64-unknown-linux-gnu
+    cross-version: v0.2.5
+```
+
+### Windows x86_64 Build (MSVC)
+
+```yaml
+- name: Setup Rust build environment for Windows
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
+  with:
+    target: x86_64-pc-windows-msvc
+```
+
+### Windows ARM64 Cross-Compilation
+
+```yaml
+- name: Setup Rust build environment for Windows ARM64
+  uses: firestoned/github-actions/rust/setup-rust-build@v1
+  with:
+    target: aarch64-pc-windows-msvc
     cross-version: v0.2.5
 ```
 
@@ -70,6 +90,10 @@ jobs:
         target:
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - x86_64-pc-windows-gnu
+          - aarch64-pc-windows-msvc
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -79,14 +103,19 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" || "${{ matrix.target }}" == "aarch64-pc-windows-msvc" ]]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 ```
 
 ## Inputs
 
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
-| `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`) | Yes | N/A |
+| `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`, `aarch64-unknown-linux-gnu`) | Yes | N/A |
 | `cache-key` | Additional cache key component for isolating caches by branch or feature | No | `''` |
 | `cross-version` | Version of `cross` to install for ARM64 builds (e.g., `v0.2.5`) | No | `v0.2.5` |
 | `components` | Comma-separated list of Rust components to install (e.g., `rustfmt, clippy`) | No | `rustfmt, clippy` |
@@ -101,13 +130,16 @@ jobs:
 4. Caches Rust dependencies using `Swatinem/rust-cache@v2`
 5. Uses target and cache-key for cache isolation
 
-### ARM64 Builds (aarch64)
+### Cross-Compilation Builds (ARM64 and Windows ARM64)
+
+For targets that require cross-compilation (`aarch64-unknown-linux-gnu`, `aarch64-pc-windows-msvc`):
 
 1. Performs all standard build steps
-2. Checks for cached `cross` binary
-3. Installs `cross` if not cached (pinned to specified version)
-4. Verifies Docker is available for cross-compilation
-5. Caches `cross` binary for future runs
+2. Determines if `cross` is needed based on target
+3. Checks for cached `cross` binary
+4. Installs `cross` if not cached (pinned to specified version)
+5. Verifies Docker is available for cross-compilation
+6. Caches `cross` binary for future runs
 
 ### Cache Strategy
 
@@ -123,18 +155,29 @@ This ensures:
 
 ## Supported Targets
 
-### Tier 1 Targets (Native Builds)
-- `x86_64-unknown-linux-gnu` - 64-bit Linux (GNU)
-- `x86_64-unknown-linux-musl` - 64-bit Linux (musl)
-- `x86_64-apple-darwin` - 64-bit macOS
-- `x86_64-pc-windows-msvc` - 64-bit Windows (MSVC)
+### Linux Targets (Native and Cross-Compilation)
+- `x86_64-unknown-linux-gnu` - x86_64 Linux with GNU libc (native)
+- `x86_64-unknown-linux-musl` - x86_64 Linux with musl libc (native)
+- `aarch64-unknown-linux-gnu` - ARM64 Linux with GNU libc (cross-compilation with `cross`)
+- `aarch64-unknown-linux-musl` - ARM64 Linux with musl libc (cross-compilation)
+- `armv7-unknown-linux-gnueabihf` - 32-bit ARM Linux (cross-compilation)
 
-### Tier 2 Targets (Cross-Compilation)
-- `aarch64-unknown-linux-gnu` - 64-bit ARM Linux (GNU)
-- `aarch64-unknown-linux-musl` - 64-bit ARM Linux (musl)
-- `armv7-unknown-linux-gnueabihf` - 32-bit ARM Linux
+### Windows Targets
+- `x86_64-pc-windows-msvc` - x86_64 Windows with MSVC toolchain (cross-compilation from Linux)
+- `x86_64-pc-windows-gnu` - x86_64 Windows with GNU toolchain (cross-compilation from Linux)
+- `aarch64-pc-windows-msvc` - ARM64 Windows with MSVC toolchain (cross-compilation with `cross`)
 
-For a complete list, see the [Rust Platform Support](https://doc.rust-lang.org/nightly/rustc/platform-support.html) documentation.
+### macOS Targets
+- `x86_64-apple-darwin` - x86_64 macOS (native on x86_64 macOS runners)
+- `aarch64-apple-darwin` - ARM64 macOS (native on ARM64 macOS runners)
+
+### Automatically Uses Cross
+
+This action automatically installs and configures `cross` for these targets:
+- `aarch64-unknown-linux-gnu` - ARM64 Linux
+- `aarch64-pc-windows-msvc` - ARM64 Windows
+
+For a complete list of Rust targets, see the [Rust Platform Support](https://doc.rust-lang.org/nightly/rustc/platform-support.html) documentation.
 
 ## Best Practices
 
