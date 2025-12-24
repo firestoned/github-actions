@@ -340,6 +340,88 @@ Before submitting a PR, ensure:
 6. **Signed commits**: All commits must be GPG or SSH signed
 7. **Security scanning**: All actions undergo security analysis
 
+## Supported Build Targets
+
+The Rust actions support building binaries for multiple target architectures:
+
+### Linux Targets
+
+**Native Builds (using `cargo`):**
+- `x86_64-unknown-linux-gnu` - x86_64 Linux with GNU libc
+- `x86_64-unknown-linux-musl` - x86_64 Linux with musl libc
+
+**Cross-Compilation Builds (using `cross`):**
+- `aarch64-unknown-linux-gnu` - ARM64 Linux with GNU libc
+- `aarch64-unknown-linux-musl` - ARM64 Linux with musl libc
+
+### Windows Targets
+
+**Cross-Compilation from Linux (using `cargo`):**
+- `x86_64-pc-windows-msvc` - x86_64 Windows with MSVC toolchain (recommended)
+- `x86_64-pc-windows-gnu` - x86_64 Windows with GNU/MinGW-w64 toolchain
+
+**Cross-Compilation from Linux (using `cross`):**
+- `aarch64-pc-windows-msvc` - ARM64 Windows with MSVC toolchain
+
+**Choosing Between Windows MSVC and GNU:**
+
+MSVC (`x86_64-pc-windows-msvc`):
+- Uses Microsoft Visual C++ toolchain
+- Better integration with Windows ecosystem
+- Best compatibility with Windows APIs
+- **Requires Windows runners** (`runs-on: windows-latest`)
+- Cannot cross-compile from Linux without complex setup (xwin)
+- Recommended for production Windows deployments
+
+GNU (`x86_64-pc-windows-gnu`) - **Recommended for CI/CD**:
+- Uses MinGW-w64 toolchain
+- **Works on Linux runners** with mingw-w64 installed
+- Better for cross-platform CI pipelines on Linux runners
+- Requires mingw-w64 installation: `sudo apt-get install mingw-w64`
+- Good compatibility with most Windows applications
+- Simpler and faster for Linux-based CI/CD
+
+**CI/CD Recommendation**:
+- Use `x86_64-pc-windows-gnu` on Linux runners (ubuntu-latest)
+- Use `x86_64-pc-windows-msvc` on Windows runners (windows-latest)
+- Both produce fully functional Windows executables
+
+### macOS Targets
+
+- `x86_64-apple-darwin` - x86_64 macOS (Intel)
+- `aarch64-apple-darwin` - ARM64 macOS (Apple Silicon)
+
+### Target-Specific Requirements
+
+**Windows GNU Target (`x86_64-pc-windows-gnu`):**
+```yaml
+- name: Install mingw-w64
+  if: matrix.target == 'x86_64-pc-windows-gnu'
+  run: |
+    sudo apt-get update
+    sudo apt-get install -y mingw-w64
+```
+
+**Cross-compilation targets (require Docker):**
+- `aarch64-unknown-linux-gnu` - ARM64 Linux
+- `aarch64-pc-windows-msvc` - ARM64 Windows
+
+These targets automatically use the `cross` tool which requires Docker to be available on the runner.
+
+### Binary Output Paths
+
+**Linux binaries:**
+```
+target/{target}/release/{binary-name}
+Example: target/x86_64-unknown-linux-gnu/release/my-app
+```
+
+**Windows binaries (include .exe extension):**
+```
+target/{target}/release/{binary-name}.exe
+Example: target/x86_64-pc-windows-msvc/release/my-app.exe
+```
+
 ## Technologies and Tools
 
 ### Core Technologies

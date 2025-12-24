@@ -571,8 +571,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
+        include:
+          - target: x86_64-unknown-linux-gnu
+            binary: test-binary
+          - target: x86_64-pc-windows-gnu
+            binary: test-binary.exe
     steps:
       - uses: actions/checkout@v4
 
@@ -591,17 +594,33 @@ jobs:
         with:
           target: ${{ matrix.target }}
 
-      - name: Test build-binary action
+      - name: Install mingw-w64 for Windows GNU target
+        if: matrix.target == 'x86_64-pc-windows-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+
+      - name: Build binary
         working-directory: test-binary
         run: |
-          cargo build --release --target ${{ matrix.target }} --verbose
+          if [[ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" || "${{ matrix.target }}" == "aarch64-pc-windows-msvc" ]]; then
+            cross build --release --target ${{ matrix.target }} --verbose
+          else
+            cargo build --release --target ${{ matrix.target }} --verbose
+          fi
 
       - name: Verify binary was built
         run: |
           cd test-binary
-          test -f target/${{ matrix.target }}/release/test-binary
-          echo "✓ Binary built successfully"
-          ./target/${{ matrix.target }}/release/test-binary
+          test -f target/${{ matrix.target }}/release/${{ matrix.binary }}
+          echo "✓ Binary built successfully for ${{ matrix.target }}"
+          ls -lh target/${{ matrix.target }}/release/${{ matrix.binary }}
+
+      - name: Execute binary (Linux only)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          cd test-binary
+          ./target/${{ matrix.target }}/release/${{ matrix.binary }}
 
   test-verify-toolchain:
     name: Test rust/verify-toolchain

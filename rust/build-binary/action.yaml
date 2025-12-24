@@ -22,12 +22,27 @@ runs:
       with:
         require-cargo: true
 
-    - name: Build (release) - x86_64
+    - name: Build (release) - x86_64 Linux
       if: inputs.target == 'x86_64-unknown-linux-gnu'
       shell: bash
       run: cargo build --release --target ${{ inputs.target }} --verbose
 
-    - name: Build (release) - ARM64 with cross
+    - name: Build (release) - ARM64 Linux with cross
       if: inputs.target == 'aarch64-unknown-linux-gnu'
+      shell: bash
+      run: cross build --release --target ${{ inputs.target }} --verbose
+
+    - name: Build (release) - x86_64 Windows MSVC
+      if: inputs.target == 'x86_64-pc-windows-msvc'
+      shell: bash
+      run: cargo build --release --target ${{ inputs.target }} --verbose
+
+    - name: Build (release) - x86_64 Windows GNU
+      if: inputs.target == 'x86_64-pc-windows-gnu'
+      shell: bash
+      run: cargo build --release --target ${{ inputs.target }} --verbose
+
+    - name: Build (release) - ARM64 Windows with cross
+      if: inputs.target == 'aarch64-pc-windows-msvc'
       shell: bash
       run: cross build --release --target ${{ inputs.target }} --verbose

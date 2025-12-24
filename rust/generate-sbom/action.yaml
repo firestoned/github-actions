@@ -130,21 +130,13 @@ runs:
           done
         fi
 
-        # Also check target directories (for describe=binaries or all-cargo-targets)
-        if [ "${{ inputs.describe }}" = "binaries" ] || [ "${{ inputs.describe }}" = "all-cargo-targets" ]; then
-          echo ""
-          echo "Searching for SBOMs in target directories..."
-          find target -name "*.cdx.*" -type f 2>/dev/null | while read sbom_file; do
-            ls -lh "$sbom_file"
-          done
-        fi
-
         # Summary count
         echo ""
         total_sboms=$(find . -name "*.cdx.*" -not -path "*/target/*" -not -path "*/.git/*" -type f 2>/dev/null | wc -l | tr -d ' ')
-        if [ -d "target" ]; then
-          target_sboms=$(find target -name "*.cdx.*" -type f 2>/dev/null | wc -l | tr -d ' ')
-        else
-          target_sboms=0
+        echo "Total SBOMs generated: $total_sboms"
+
+        # Verify at least one SBOM was generated
+        if [ "$total_sboms" -eq 0 ]; then
+          echo "Error: No SBOM files were generated"
+          exit 1
         fi
-        echo "Total SBOMs found: $total_sboms in workspace, $target_sboms in target/"
