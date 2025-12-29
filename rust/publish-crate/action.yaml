@@ -45,7 +45,7 @@ runs:
       run: |
         # Use cargo login with token from environment variable
         # This is the recommended approach instead of --token flag
-        echo ${CARGO_REGISTRY_TOKE} | cargo login
+        echo ${CARGO_REGISTRY_TOKEN} | cargo login
 
     - name: Publish crate
       shell: bash
