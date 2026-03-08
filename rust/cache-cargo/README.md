@@ -234,6 +234,64 @@ GitHub Actions has a 10GB cache limit per repository. If you hit this limit:
 - [`rust/build-binary`](../build-binary/README.md) - Build Rust binaries
 - [`rust/security-scan`](../security-scan/README.md) - Scan dependencies for vulnerabilities
 
+## How It Works
+
+The action creates three distinct caches, each with its own key based on the operating system and the hash of all `Cargo.lock` files in the repository:
+
+1. **Cargo Registry** (`~/.cargo/registry`): Stores downloaded `.crate` archives from crates.io and other registries. Restoring this cache avoids re-downloading dependencies on every run.
+
+2. **Cargo Git Index** (`~/.cargo/git`): Stores git checkouts for crates sourced from git repositories rather than crates.io. Without this cache, cargo must clone each git-sourced dependency on every run.
+
+3. **Build Artifacts** (`target/`): Stores compiled `.rlib`, `.so`, incremental compilation fragments, and other build outputs. This is the largest component but provides the most speedup for repeated builds with code changes.
+
+### Cache Key Strategy
+
+All three cache keys follow the pattern:
+```
+${{ runner.os }}-<component>-${{ hashFiles('**/Cargo.lock') }}
+```
+
+When `Cargo.lock` changes (e.g., a dependency is added or upgraded), all three caches are invalidated and rebuilt. When only source code changes, the registry and git-index caches are still valid — only the build artifact cache needs to be partially rebuilt.
+
+Restore keys (without the lockfile hash) provide fallback partial hits when the exact key misses, allowing cargo to start from a warm state rather than a cold one.
+
+## Inputs
+
+This action requires no inputs. Everything is inferred automatically from the environment.
+
+## Outputs
+
+This action produces no direct outputs. The caching is transparent — cargo commands in subsequent steps automatically benefit from restored cache entries.
+
+## Compatibility
+
+- **Rust versions:** All versions (stable, beta, nightly)
+- **Cargo versions:** All versions
+- **Operating Systems:** Linux, macOS, Windows
+- **GitHub Actions runners:** ubuntu-latest, macos-latest, windows-latest
+- **Self-hosted runners:** Yes (requires standard Cargo installation)
+- **Workspaces:** Yes, automatically caches all members
+
+## Comparison with Swatinem/rust-cache
+
+| Feature | `rust/cache-cargo` | `Swatinem/rust-cache` |
+|---------|-------------------|----------------------|
+| Registry cache | ✅ | ✅ |
+| Git index cache | ✅ | ✅ |
+| Build artifacts | ✅ | ✅ |
+| Automatic target cleanup | ❌ | ✅ |
+| Cross-compilation aware | ❌ | ✅ |
+| Zero configuration | ✅ | ✅ |
+
+For simple projects, `rust/cache-cargo` is sufficient. For complex multi-target or cross-compilation workflows, consider using `Swatinem/rust-cache` directly via the [`rust/setup-rust-build`](../setup-rust-build/README.md) action which includes it by default.
+
+## Related Actions
+
+- [`rust/setup-rust-build`](../setup-rust-build/README.md) — Set up Rust toolchain with caching (includes `Swatinem/rust-cache`)
+- [`rust/build-binary`](../build-binary/README.md) — Build Rust binaries
+- [`rust/build-library`](../build-library/README.md) — Build Rust libraries
+- [`rust/security-scan`](../security-scan/README.md) — Scan dependencies for vulnerabilities
+
 ## License
 
 MIT License - see [LICENSE](../../LICENSE) for details.
