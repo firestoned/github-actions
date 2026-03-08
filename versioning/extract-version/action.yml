@@ -22,8 +22,8 @@ inputs:
   release-tag:
     description: 'Release tag name (only for release workflow)'
     required: false
-  image-suffix:
-    description: 'Image suffix for variant (e.g., "" or "-distroless")'
+  image-tag-suffix:
+    description: 'Suffix to append to the image tag (e.g., "-distroless")'
     required: false
     default: ''
 
@@ -38,7 +38,7 @@ outputs:
     description: 'Docker image tag (e.g., main-2025.12.17, pr-42, v0.2.0)'
     value: ${{ steps.extract.outputs.image-tag }}
   image-repository:
-    description: 'Docker repository name (e.g., firestoned/myapp or firestoned/myapp-distroless)'
+    description: 'Docker repository name (e.g., firestoned/myapp)'
     value: ${{ steps.extract.outputs.image-repository }}
   short-sha:
     description: 'Short 7-character SHA'
@@ -55,13 +55,8 @@ runs:
         SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
         echo "short-sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
 
-        # Determine repository name based on image suffix
-        BASE_REPO="${{ inputs.repository }}"
-        if [ "${{ inputs.image-suffix }}" = "-distroless" ]; then
-          IMAGE_REPOSITORY="${BASE_REPO}-distroless"
-        else
-          IMAGE_REPOSITORY="${BASE_REPO}"
-        fi
+        IMAGE_REPOSITORY="${{ inputs.repository }}"
+        IMAGE_TAG_SUFFIX="${{ inputs.image-tag-suffix }}"
         echo "image-repository=${IMAGE_REPOSITORY}" >> $GITHUB_OUTPUT
 
         case "${{ inputs.workflow-type }}" in
@@ -70,7 +65,7 @@ runs:
             # Tag format: v0.2.0 (no date)
             TAG_NAME="${{ inputs.release-tag }}"
             VERSION="${TAG_NAME#v}"
-            IMAGE_TAG="${TAG_NAME}"
+            IMAGE_TAG="${TAG_NAME}${IMAGE_TAG_SUFFIX}"
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
             echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
@@ -82,7 +77,7 @@ runs:
             # Tag format: pr-42
             VERSION="pr-${{ inputs.pr-number }}"
             TAG_NAME="pr-${{ inputs.pr-number }}"
-            IMAGE_TAG="pr-${{ inputs.pr-number }}"
+            IMAGE_TAG="pr-${{ inputs.pr-number }}${IMAGE_TAG_SUFFIX}"
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
             echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
@@ -95,7 +90,7 @@ runs:
             DATE=$(date +%Y.%m.%d)
             VERSION="0.0.0-main.${DATE}.${{ github.run_number }}"
             TAG_NAME="main-${DATE}"
-            IMAGE_TAG="main-${DATE}"
+            IMAGE_TAG="main-${DATE}${IMAGE_TAG_SUFFIX}"
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
             echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT

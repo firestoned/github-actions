@@ -2,13 +2,13 @@
 
 **Extracts version, tag name, and image tags for consistent use across workflows**
 
-A composite GitHub Action that provides standardized version extraction for different workflow contexts (main branch, pull requests, and releases). Ensures consistent versioning and tagging across your entire CI/CD pipeline, with support for image variants like distroless builds.
+A composite GitHub Action that provides standardized version extraction for different workflow contexts (main branch, pull requests, and releases). Ensures consistent versioning and tagging across your entire CI/CD pipeline, with optional tag suffix support for image variants.
 
 ## Features
 
 - **Three workflow types** - Specialized handling for main, PR, and release workflows
 - **Consistent versioning** - Single source of truth for version information across all jobs
-- **Image variant support** - Built-in support for distroless and other image variants
+- **Image tag suffix support** - Append suffixes like `-distroless` to image tags for variant builds
 - **Semantic versioning** - Proper semver for releases, dated versions for main branch
 - **PR-specific tags** - Clean `pr-NUMBER` format for pull request builds
 - **Short SHA extraction** - 7-character commit SHA for tracking
@@ -93,7 +93,7 @@ Image: owner/myapp:v0.2.0
   with:
     repository: ${{ github.repository }}
     workflow-type: main
-    image-suffix: -distroless
+    image-tag-suffix: -distroless
 
 - name: Build distroless image
   run: |
@@ -103,8 +103,8 @@ Image: owner/myapp:v0.2.0
 
 **Output:**
 ```
-Image Repository: owner/myapp-distroless
-Image Tag: main-2025.12.17
+Image Repository: owner/myapp
+Image Tag: main-2025.12.17-distroless
 ```
 
 ## Inputs
@@ -115,7 +115,7 @@ Image Tag: main-2025.12.17
 | `workflow-type` | Workflow type: `main`, `pr`, or `release` | Yes | N/A |
 | `pr-number` | PR number (only for `pr` workflow) | No | N/A |
 | `release-tag` | Release tag name (only for `release` workflow) | No | N/A |
-| `image-suffix` | Image suffix for variant (e.g., `""` or `"-distroless"`) | No | `""` |
+| `image-tag-suffix` | Suffix to append to the image tag (e.g., `"-distroless"`) | No | `""` |
 
 ## Outputs
 
@@ -124,7 +124,7 @@ Image Tag: main-2025.12.17
 | `version` | Semantic version | `1.2.3` or `0.0.0-main.2025.12.17.42` or `pr-42` |
 | `tag-name` | Git tag name | `v1.2.3` or `main-2025.12.17` or `pr-42` |
 | `image-tag` | Docker image tag | `v1.2.3` or `main-2025.12.17` or `pr-42` |
-| `image-repository` | Docker repository name | `owner/myapp` or `owner/myapp-distroless` |
+| `image-repository` | Docker repository name | `owner/myapp` |
 | `short-sha` | Short 7-character SHA | `a1b2c3d` |
 
 ## How It Works
@@ -179,20 +179,20 @@ This ensures:
 - Clear release identification
 - Compatible with standard Git tag conventions
 
-### Image Suffix Feature
+### Image Tag Suffix Feature
 
-When `image-suffix` is provided:
+When `image-tag-suffix` is provided, it is appended to the computed image tag:
 
-- **Base repository**: `owner/myapp`
-- **With suffix `-distroless`**: `owner/myapp-distroless`
+- **Without suffix**: `owner/myapp:v0.2.0`
+- **With suffix `-distroless`**: `owner/myapp:v0.2.0-distroless`
 
-This allows building multiple image variants with different repository names:
+This allows building multiple image variants under the same repository with distinct tags:
 ```yaml
 # Standard image
 owner/myapp:v0.2.0
 
 # Distroless variant
-owner/myapp-distroless:v0.2.0
+owner/myapp:v0.2.0-distroless
 ```
 
 ## Complete Workflow Examples
@@ -332,8 +332,8 @@ jobs:
     strategy:
       matrix:
         variant:
-          - { suffix: '', dockerfile: 'Dockerfile' }
-          - { suffix: '-distroless', dockerfile: 'Dockerfile.distroless' }
+          - { tag-suffix: '', dockerfile: 'Dockerfile' }
+          - { tag-suffix: '-distroless', dockerfile: 'Dockerfile.distroless' }
     steps:
       - uses: actions/checkout@v4
 
@@ -343,7 +343,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           workflow-type: main
-          image-suffix: ${{ matrix.variant.suffix }}
+          image-tag-suffix: ${{ matrix.variant.tag-suffix }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -535,18 +535,18 @@ workflow-type: pull_request  # Use 'pr' instead
     release-tag: ${{ github.ref_name }}  # Required!
 ```
 
-### Image Suffix Not Applied
+### Image Tag Suffix Not Applied
 
-**Problem**: Distroless variant not getting suffix
+**Problem**: Distroless variant not getting suffix in the image tag
 
-**Solution**: Verify `image-suffix` includes the hyphen:
+**Solution**: Verify `image-tag-suffix` includes the hyphen:
 
 ```yaml
 # ✅ CORRECT
-image-suffix: -distroless
+image-tag-suffix: -distroless
 
 # ❌ WRONG
-image-suffix: distroless  # Missing hyphen
+image-tag-suffix: distroless  # Missing hyphen
 ```
 
 ## Advanced Usage
@@ -558,9 +558,9 @@ image-suffix: distroless  # Missing hyphen
   id: variant
   run: |
     if [ -f "Dockerfile.distroless" ]; then
-      echo "suffix=-distroless" >> $GITHUB_OUTPUT
+      echo "tag-suffix=-distroless" >> $GITHUB_OUTPUT
     else
-      echo "suffix=" >> $GITHUB_OUTPUT
+      echo "tag-suffix=" >> $GITHUB_OUTPUT
     fi
 
 - name: Extract version
@@ -568,7 +568,7 @@ image-suffix: distroless  # Missing hyphen
   with:
     repository: ${{ github.repository }}
     workflow-type: main
-    image-suffix: ${{ steps.variant.outputs.suffix }}
+    image-tag-suffix: ${{ steps.variant.outputs.tag-suffix }}
 ```
 
 ### Multi-Architecture Builds
