@@ -83,6 +83,8 @@ jobs:
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
 | `image-ref` | Container image reference to scan (e.g., `ghcr.io/org/repo:tag`) | Yes | N/A |
+| `severity` | Comma-separated severity levels to report (`CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN`) | No | `CRITICAL,HIGH` |
+| `exit-code` | Exit code when vulnerabilities are found: `0` to continue, `1` to fail | No | `0` |
 | `sarif-category` | Category name for SARIF upload to GitHub Security tab | No | `trivy-container-scan` |
 | `upload-artifact-name` | Name for the Trivy scan report artifact | No | `trivy-scan-report` |
 | `output-filename` | Filename for the JSON output report | No | `trivy-results.json` |
@@ -93,7 +95,7 @@ jobs:
 
 Automatically uploaded to GitHub Security tab:
 - View at: `https://github.com/{owner}/{repo}/security/code-scanning`
-- Severity filtering: CRITICAL and HIGH only
+- Severity filtering: controlled by `severity` input (default: CRITICAL and HIGH)
 - Integrated with GitHub's security features
 - Triggers security advisories
 

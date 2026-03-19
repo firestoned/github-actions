@@ -1036,8 +1036,8 @@ jobs:
         uses: ./security/trivy-scan
         with:
           image-ref: test-image:latest
-          format: table
-          exit-code: 0
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
         continue-on-error: true
 
       - name: Verify trivy ran
@@ -1065,9 +1065,8 @@ jobs:
         uses: ./security/trivy-scan
         with:
           image-ref: test-image-sarif:latest
-          format: sarif
-          output: trivy-results.sarif
           sarif-category: trivy-container-test
+          output-filename: trivy-results.sarif
         continue-on-error: true
 
       - name: Verify SARIF output

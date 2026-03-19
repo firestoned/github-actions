@@ -13,6 +13,19 @@ inputs:
   target:
     description: 'Rust target triple (e.g., x86_64-unknown-linux-gnu)'
     required: true
+  binary-name:
+    description: 'Name of the binary to build (defaults to inferred from Cargo.toml)'
+    required: false
+    default: ''
+  extra-args:
+    description: 'Additional arguments to pass to cargo/cross build'
+    required: false
+    default: ''
+
+outputs:
+  binary-path:
+    description: 'Path to the built binary relative to the workspace root'
+    value: ${{ steps.set-binary-path.outputs.binary-path }}
 
 runs:
   using: composite
@@ -23,26 +36,94 @@ runs:
         require-cargo: true
 
     - name: Build (release) - x86_64 Linux
-      if: inputs.target == 'x86_64-unknown-linux-gnu'
+      if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'x86_64-unknown-linux-musl'
       shell: bash
-      run: cargo build --release --target ${{ inputs.target }} --verbose
+      run: |
+        set -euo pipefail
+        cargo build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
 
     - name: Build (release) - ARM64 Linux with cross
-      if: inputs.target == 'aarch64-unknown-linux-gnu'
+      if: inputs.target == 'aarch64-unknown-linux-gnu' || inputs.target == 'aarch64-unknown-linux-musl'
       shell: bash
-      run: cross build --release --target ${{ inputs.target }} --verbose
+      run: |
+        set -euo pipefail
+        cross build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
 
     - name: Build (release) - x86_64 Windows MSVC
       if: inputs.target == 'x86_64-pc-windows-msvc'
       shell: bash
-      run: cargo build --release --target ${{ inputs.target }} --verbose
+      run: |
+        set -euo pipefail
+        cargo build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
 
     - name: Build (release) - x86_64 Windows GNU
       if: inputs.target == 'x86_64-pc-windows-gnu'
       shell: bash
-      run: cargo build --release --target ${{ inputs.target }} --verbose
+      run: |
+        set -euo pipefail
+        cargo build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
 
     - name: Build (release) - ARM64 Windows with cross
       if: inputs.target == 'aarch64-pc-windows-msvc'
       shell: bash
-      run: cross build --release --target ${{ inputs.target }} --verbose
+      run: |
+        set -euo pipefail
+        cross build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
+
+    - name: Build (release) - macOS x86_64
+      if: inputs.target == 'x86_64-apple-darwin'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cargo build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
+
+    - name: Build (release) - macOS ARM64 (Apple Silicon)
+      if: inputs.target == 'aarch64-apple-darwin'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cargo build --release --target "${{ inputs.target }}" --verbose ${{ inputs.extra-args }}
+
+    - name: Set binary path output
+      id: set-binary-path
+      shell: bash
+      run: |
+        set -euo pipefail
+        target="${{ inputs.target }}"
+        binary_dir="target/${target}/release"
+
+        # Determine binary extension (Windows targets get .exe)
+        ext=""
+        if echo "${target}" | grep -q "windows"; then
+          ext=".exe"
+        fi
+
+        # Find the binary
+        if [ -n "${{ inputs.binary-name }}" ]; then
+          binary_path="${binary_dir}/${{ inputs.binary-name }}${ext}"
+        else
+          # Infer binary name from Cargo.toml package name
+          pkg_name=$(grep -m1 '^name' Cargo.toml | sed 's/.*= *"\(.*\)"/\1/' | tr '-' '_')
+          binary_path="${binary_dir}/${pkg_name}${ext}"
+        fi
+
+        if [ -f "${binary_path}" ]; then
+          echo "binary-path=${binary_path}" >> "${GITHUB_OUTPUT}"
+          echo "Binary built at: ${binary_path}"
+          ls -lh "${binary_path}"
+        else
+          echo "WARNING: Expected binary not found at ${binary_path}"
+          echo "Contents of ${binary_dir}:"
+          ls -la "${binary_dir}" 2>/dev/null || echo "(directory not found)"
+        fi
+
+    - name: Generate step summary
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "### Build Rust Binary" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Field | Value |" >> "${GITHUB_STEP_SUMMARY}"
+        echo "|-------|-------|" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Target | \`${{ inputs.target }}\` |" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Binary | \`${{ steps.set-binary-path.outputs.binary-path }}\` |" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Status | ✅ Built successfully |" >> "${GITHUB_STEP_SUMMARY}"

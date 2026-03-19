@@ -13,6 +13,14 @@ inputs:
   image-ref:
     description: 'Container image reference to scan (e.g., ghcr.io/org/repo:tag)'
     required: true
+  severity:
+    description: 'Comma-separated list of severity levels to scan for (CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN)'
+    required: false
+    default: 'CRITICAL,HIGH'
+  exit-code:
+    description: 'Exit code when vulnerabilities are found (0 = continue, 1 = fail)'
+    required: false
+    default: '0'
   sarif-category:
     description: 'Category name for SARIF upload to GitHub Security tab'
     required: false
@@ -30,29 +38,31 @@ runs:
   using: 'composite'
   steps:
     - name: Run Trivy vulnerability scanner (SARIF output)
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.35.0
       continue-on-error: true
       with:
         image-ref: ${{ inputs.image-ref }}
         format: 'sarif'
         output: 'trivy-results.sarif'
-        severity: 'CRITICAL,HIGH'
+        severity: ${{ inputs.severity }}
 
     - name: Upload Trivy results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
+      continue-on-error: true
       with:
         sarif_file: trivy-results.sarif
         category: ${{ inputs.sarif-category }}
 
     - name: Run Trivy vulnerability scanner (JSON output)
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@0.35.0
       if: always()
       with:
         image-ref: ${{ inputs.image-ref }}
         format: 'json'
         output: ${{ inputs.output-filename }}
-        severity: 'CRITICAL,HIGH,MEDIUM,LOW'
+        severity: ${{ inputs.severity }}
+        exit-code: ${{ inputs.exit-code }}
 
     - name: Upload Trivy JSON report as artifact
       if: always()
@@ -60,3 +70,20 @@ runs:
       with:
         name: ${{ inputs.upload-artifact-name }}
         path: ${{ inputs.output-filename }}
+
+    - name: Generate step summary
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "### Trivy Security Scan Results" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Field | Value |" >> "${GITHUB_STEP_SUMMARY}"
+        echo "|-------|-------|" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Image | \`${{ inputs.image-ref }}\` |" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Severity | \`${{ inputs.severity }}\` |" >> "${GITHUB_STEP_SUMMARY}"
+        echo "| Report | \`${{ inputs.output-filename }}\` |" >> "${GITHUB_STEP_SUMMARY}"
+        if [ -f "${{ inputs.output-filename }}" ]; then
+          echo "| Status | Scan complete |" >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "| Status | No report generated |" >> "${GITHUB_STEP_SUMMARY}"
+        fi

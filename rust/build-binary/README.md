@@ -128,6 +128,14 @@ jobs:
 | Name | Description | Required | Default |
 |------|-------------|----------|---------|
 | `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`, `x86_64-pc-windows-msvc`, `aarch64-unknown-linux-gnu`) | Yes | N/A |
+| `binary-name` | Name of the binary to build. Defaults to the `name` field in `Cargo.toml` | No | `''` |
+| `extra-args` | Additional arguments passed verbatim to `cargo` or `cross build` | No | `''` |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| `binary-path` | Relative path to the built binary (e.g., `target/x86_64-unknown-linux-gnu/release/my-app`) |
 
 ## How It Works
 
@@ -138,10 +146,14 @@ The action automatically chooses the appropriate build tool based on the target:
 | Target | Build Tool | Reason |
 |--------|------------|--------|
 | `x86_64-unknown-linux-gnu` | `cargo` | Native compilation on x86_64 runners |
+| `x86_64-unknown-linux-musl` | `cargo` | Native compilation with musl libc for static binaries |
 | `aarch64-unknown-linux-gnu` | `cross` | Cross-compilation from x86_64 to ARM64 Linux |
+| `aarch64-unknown-linux-musl` | `cross` | Cross-compilation to ARM64 Linux with musl libc |
 | `x86_64-pc-windows-msvc` | `cargo` | Cross-compilation to Windows with MSVC toolchain |
 | `x86_64-pc-windows-gnu` | `cargo` | Cross-compilation to Windows with GNU toolchain |
 | `aarch64-pc-windows-msvc` | `cross` | Cross-compilation to ARM64 Windows |
+| `x86_64-apple-darwin` | `cargo` | Native compilation on Intel macOS runners |
+| `aarch64-apple-darwin` | `cargo` | Native compilation on Apple Silicon macOS runners |
 
 ### Build Process
 
