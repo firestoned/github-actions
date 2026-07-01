@@ -13,7 +13,7 @@ jobs:
     name: Test rust/cache-cargo
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test Rust project
         run: |
@@ -45,7 +45,7 @@ jobs:
             features: 'serde'
             description: 'Release with specific feature'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test library project
         run: |
@@ -145,7 +145,7 @@ jobs:
             should-pass: false
             description: 'Code with clippy warnings should fail'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test project
         run: |
@@ -287,7 +287,7 @@ jobs:
       matrix:
         workflow-type: [main, pr, release]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Test extract-version (main)
         if: matrix.workflow-type == 'main'
@@ -340,7 +340,7 @@ jobs:
     name: Test security/license-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test files
         run: |
@@ -375,7 +375,7 @@ jobs:
     name: Test docker/setup-docker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Test setup-docker action
         uses: ./docker/setup-docker
@@ -392,7 +392,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -408,7 +408,7 @@ jobs:
     name: Validate Action Syntax
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Validate all action.yml files
         run: |
@@ -442,7 +442,7 @@ jobs:
     name: Validate Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Check for README files
         run: |
@@ -478,7 +478,7 @@ jobs:
     name: Validate License Headers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Check SPDX headers in action files
         run: |
@@ -511,7 +511,7 @@ jobs:
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Test setup-rust-build with ${{ matrix.target }}
         uses: ./rust/setup-rust-build
@@ -545,7 +545,7 @@ jobs:
     name: Test rust/setup-rust-build with custom components
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Test setup-rust-build with custom components
         uses: ./rust/setup-rust-build
@@ -577,7 +577,7 @@ jobs:
           - target: x86_64-pc-windows-gnu
             binary: test-binary.exe
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test binary project
         run: |
@@ -626,7 +626,7 @@ jobs:
     name: Test rust/verify-toolchain
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Rust
         uses: ./rust/setup-rust-build
@@ -663,7 +663,7 @@ jobs:
     name: Test rust/verify-toolchain (should fail when component missing)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Rust without llvm-tools
         uses: ./rust/setup-rust-build
@@ -705,7 +705,7 @@ jobs:
             format: json
             test-case: 'Binaries mode'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test project
         run: |
@@ -762,7 +762,7 @@ jobs:
     name: Test rust/generate-sbom with workspace
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test workspace
         run: |
@@ -845,7 +845,7 @@ jobs:
     name: Test rust/package-crate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Rust
         uses: ./rust/setup-rust-build
@@ -880,7 +880,7 @@ jobs:
     name: Test rust/package-crate (workspace)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Rust
         uses: ./rust/setup-rust-build
@@ -945,7 +945,7 @@ jobs:
     name: Test rust/publish-crate (dry-run)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Rust
         uses: ./rust/setup-rust-build
@@ -985,7 +985,7 @@ jobs:
     name: Test rust/security-scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Create test project
         run: |
@@ -1021,7 +1021,7 @@ jobs:
     name: Test security/trivy-scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Build test container image
         run: |
@@ -1050,7 +1050,7 @@ jobs:
     permissions:
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Build test container image
         run: |
@@ -1086,7 +1086,7 @@ jobs:
       id-token: write
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Build and tag test image
         run: |

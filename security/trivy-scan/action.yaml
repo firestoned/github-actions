@@ -38,7 +38,7 @@ runs:
   using: 'composite'
   steps:
     - name: Run Trivy vulnerability scanner (SARIF output)
-      uses: aquasecurity/trivy-action@0.35.0
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       continue-on-error: true
       with:
         image-ref: ${{ inputs.image-ref }}
@@ -47,7 +47,7 @@ runs:
         severity: ${{ inputs.severity }}
 
     - name: Upload Trivy results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3.36.2
       if: always()
       continue-on-error: true
       with:
@@ -55,7 +55,7 @@ runs:
         category: ${{ inputs.sarif-category }}
 
     - name: Run Trivy vulnerability scanner (JSON output)
-      uses: aquasecurity/trivy-action@0.35.0
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       if: always()
       with:
         image-ref: ${{ inputs.image-ref }}
@@ -66,7 +66,7 @@ runs:
 
     - name: Upload Trivy JSON report as artifact
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ inputs.upload-artifact-name }}
         path: ${{ inputs.output-filename }}

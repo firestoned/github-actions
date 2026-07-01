@@ -7,7 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Supply-chain hardening** - Pinned every third-party GitHub Action to a full
+  commit SHA (with a trailing `# vX.Y.Z` comment) across all workflows and
+  composite actions, and upgraded each to its latest release:
+  - `actions/checkout` → v7.0.0, `actions/cache` → v6.1.0,
+    `actions/upload-artifact` → v7.0.1
+  - `docker/setup-buildx-action` → v4.1.0, `docker/login-action` → v4.2.0
+  - `Swatinem/rust-cache` → v2.9.1, `sigstore/cosign-installer` → v4.1.2
+  - `aquasecurity/trivy-action` → v0.36.0,
+    `github/codeql-action/upload-sarif` → v3.36.2
+  - `dtolnay/rust-toolchain@stable` left unpinned (rolling branch, no tags)
+- **rust/publish-crate** - Fixed crates.io login: `cargo login` has no
+  `--stdin` flag; the token is now piped to `cargo login` via stdin.
+
 ### Added
+- **.github/dependabot.yml** - Nightly Dependabot for the `github-actions`
+  ecosystem, re-pinning SHAs (workflows + composite actions) as upstream cuts
+  releases; routine bumps grouped, security actions ungrouped,
+  `dtolnay/rust-toolchain` ignored.
 - **rust/package-crate** - Package Rust crates for publishing to crates.io
   - Workspace support with `--package` flag for workspace crates
   - Handles workspace version inheritance (`version.workspace = true`)

@@ -1,0 +1,51 @@
+# Copyright (c) 2025 Erick Bourgeois, firestoned
+# SPDX-License-Identifier: MIT
+#
+# Dependabot keeps the SHA-pinned GitHub Actions in this repo current. It runs
+# nightly, opening PRs against main that rewrite both the pinned `@<sha>` and
+# the trailing `# vX.Y.Z` comment for every third-party action — so reviewers
+# see the version diff and the new SHA together before merging.
+#
+# The github-actions ecosystem with directory "/" covers BOTH the reusable
+# workflows under .github/workflows AND every composite action's
+# `action.yml` / `action.yaml` at the repo root (rust/, security/, docker/,
+# versioning/).
+#
+# Docs: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      # "daily" = every night. Dependabot runs at the given time in the
+      # configured timezone, Monday–Friday by default.
+      interval: "daily"
+      time: "03:00"
+      timezone: "America/Toronto"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "firestoned"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      # Bundle routine first-party / tooling bumps into one nightly PR.
+      actions-routine:
+        applies-to: version-updates
+        patterns:
+          - "actions/*"
+          - "docker/*"
+          - "Swatinem/rust-cache"
+          - "github/codeql-action"
+      # Security-sensitive actions (sigstore/*, aquasecurity/*) stay ungrouped
+      # so each opens its own PR and gets reviewed individually.
+    ignore:
+      # dtolnay/rust-toolchain tracks the rolling `stable` branch and publishes
+      # no tags, so Dependabot has no "new version" to propose. It is left
+      # pinned to @stable on purpose; re-pin by hand if that ever changes.
+      - dependency-name: "dtolnay/rust-toolchain"
