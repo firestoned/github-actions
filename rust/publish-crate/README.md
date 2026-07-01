@@ -253,7 +253,7 @@ Using both `package-crate` and `publish-crate` for maximum control:
 ## How It Works
 
 1. **Toolchain Verification**: Calls [`rust/verify-toolchain`](../verify-toolchain/README.md) to ensure `cargo` is present.
-2. **Authentication**: Pipes the token from `$CARGO_REGISTRY_TOKEN` via stdin to `cargo login --stdin` — the token never appears in process arguments or shell history.
+2. **Authentication**: Pipes the token from `$CARGO_REGISTRY_TOKEN` via stdin to `cargo login` — the token never appears in process arguments or shell history.
 3. **Command Construction**: Builds the `cargo publish` command from inputs — optionally adding `--package`, `--allow-dirty`, `--dry-run`, and any `cargo-args`.
 4. **Workspace Handling**: When `workspace: true`, adds `--package <name>` so cargo resolves the crate from the workspace root rather than failing in a subdirectory.
 5. **Status Output**: Writes `publish-status` to `$GITHUB_OUTPUT` for use in downstream conditional steps.
@@ -262,7 +262,7 @@ Using both `package-crate` and `publish-crate` for maximum control:
 ## Security
 
 - The `token` input value is masked in GitHub Actions logs via the secrets mechanism
-- The token is passed to `cargo login` via stdin (`echo ... | cargo login --stdin`), never on the command line
+- The token is passed to `cargo login` via stdin (`echo ... | cargo login`), never on the command line
 - Authentication credentials are not stored in environment variables visible to child processes after the login step
 
 ## Publishing Order for Workspace Crates

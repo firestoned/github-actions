@@ -53,9 +53,11 @@ runs:
         CARGO_REGISTRY_TOKEN: ${{ inputs.token }}
       run: |
         set -euo pipefail
-        # Use cargo login with token from environment variable via stdin
-        # This is the recommended approach instead of --token flag (avoids shell history exposure)
-        echo "${CARGO_REGISTRY_TOKEN}" | cargo login --stdin
+        # Pipe the token from the environment into cargo login via stdin.
+        # cargo login reads the token from stdin when no token argument is
+        # given (there is no --stdin flag); this avoids exposing it on the
+        # command line or in shell history.
+        echo "${CARGO_REGISTRY_TOKEN}" | cargo login
 
     - name: Publish crate
       id: publish-crate
