@@ -1,10 +1,3 @@
-# OpenWolf
-
-This project uses OpenWolf for context management. The always-on rules live in `.claude/rules/openwolf.md`; the hooks handle bookkeeping (anatomy index, memory log, read tracking) automatically.
-
-For the full operating protocol (session handoff, memory discipline, bug logging), load the `openwolf` skill, or read `.wolf/OPENWOLF.md`. Regenerate the session handoff with `/handoff`.
-
-
 # Firestoned GitHub Actions - Development Guidelines
 
 This document provides comprehensive guidance for developing, maintaining, and contributing to this GitHub Actions repository.
@@ -557,3 +550,9 @@ This project is licensed under the MIT License. All files must include SPDX lice
 # Copyright (c) 2025 Erick Bourgeois, firestoned
 # SPDX-License-Identifier: MIT
 ```
+
+<!-- openwolf:begin -->
+# OpenWolf
+
+This project uses OpenWolf for context management. Read and follow .wolf/OPENWOLF.md at session start. Check .wolf/cerebrum.md before generating code. Grep .wolf/anatomy.md for a file's path before reading it (never read the whole index).
+<!-- openwolf:end -->

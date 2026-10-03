@@ -1,0 +1,433 @@
+{
+  "version": 1,
+  "meta": {
+    "lastScanned": "2026-10-03T20:28:16.516Z",
+    "fileCount": 46,
+    "hits": 0,
+    "misses": 0,
+    "renderedHash": "2c2016e3335a7e10ebf2bed6e1a7aef4df92d1a6eb684377d2c7edb6515b7860",
+    "storeUpdatedAt": "2026-10-03T20:28:16.522Z",
+    "rootHash": "e6c97c0cc0b4827b"
+  },
+  "files": {
+    ".github/dependabot.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 553,
+      "hash": "9d6ade8a4092bb53",
+      "size": 1938,
+      "mtimeMs": 1782948155728.5264,
+      "updatedAt": "2026-10-03T20:25:02.281Z",
+      "source": "scan"
+    },
+    ".github/workflows/pr.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 9908,
+      "hash": "c3ff262722c129dc",
+      "size": 34736,
+      "mtimeMs": 1782948155728.7117,
+      "updatedAt": "2026-10-03T20:25:02.281Z",
+      "source": "scan"
+    },
+    ".github/workflows/release.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 3830,
+      "hash": "df6d2e61ef61750a",
+      "size": 13444,
+      "mtimeMs": 1782948155728.8574,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    ".gitignore": {
+      "description": "Git ignore rules",
+      "tokens": 147,
+      "hash": "a254d2643baf66ae",
+      "size": 549,
+      "mtimeMs": 1766149647115.7715,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    "AGENTS.md": {
+      "description": "Firestoned GitHub Actions - Development Guidelines",
+      "tokens": 3931,
+      "hash": "877098a728626aca",
+      "size": 15923,
+      "mtimeMs": 1791059102272.5442,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    "CHANGELOG.md": {
+      "description": "Change log",
+      "tokens": 3035,
+      "hash": "b46a060dc05bd54f",
+      "size": 12158,
+      "mtimeMs": 1782948155729.0234,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    "CLAUDE.md": {
+      "description": "OpenWolf",
+      "tokens": 3955,
+      "hash": "4ad27424ff6d7a55",
+      "size": 16022,
+      "mtimeMs": 1791059102258.64,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    "CONTRIBUTING.md": {
+      "description": "Contributing to Firestoned GitHub Actions",
+      "tokens": 3013,
+      "hash": "c98272a90b41b8e5",
+      "size": 12072,
+      "mtimeMs": 1766149615365.6882,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    "docker/setup-docker/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 229,
+      "hash": "897539a98c56983f",
+      "size": 799,
+      "mtimeMs": 1782948155729.16,
+      "updatedAt": "2026-10-03T20:25:02.282Z",
+      "source": "scan"
+    },
+    "docker/setup-docker/README.md": {
+      "description": "Project documentation",
+      "tokens": 3631,
+      "hash": "93a44471ab7f369f",
+      "size": 14527,
+      "mtimeMs": 1766119151529.0273,
+      "updatedAt": "2026-10-03T20:25:02.283Z",
+      "source": "scan"
+    },
+    "examples/README.md": {
+      "description": "Project documentation",
+      "tokens": 1311,
+      "hash": "6ccaae2727d40ae3",
+      "size": 5259,
+      "mtimeMs": 1766197135011.6296,
+      "updatedAt": "2026-10-03T20:25:02.283Z",
+      "source": "scan"
+    },
+    "examples/rust-library-ci.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1932,
+      "hash": "0fecadc5bbf14ee4",
+      "size": 6763,
+      "mtimeMs": 1766197135011.9111,
+      "updatedAt": "2026-10-03T20:25:02.283Z",
+      "source": "scan"
+    },
+    "LICENSE": {
+      "description": "Project license",
+      "tokens": 290,
+      "hash": "67f13431e6092532",
+      "size": 1084,
+      "mtimeMs": 1766118366889.6013,
+      "updatedAt": "2026-10-03T20:25:02.283Z",
+      "source": "scan"
+    },
+    "README_SAMPLES.md": {
+      "description": "README Samples - Quality Demonstration",
+      "tokens": 2011,
+      "hash": "f6490635810fbe93",
+      "size": 8048,
+      "mtimeMs": 1766149446565.0881,
+      "updatedAt": "2026-10-03T20:25:02.283Z",
+      "source": "scan"
+    },
+    "README.md": {
+      "description": "Project documentation",
+      "tokens": 3645,
+      "hash": "370f50afae7517d9",
+      "size": 14659,
+      "mtimeMs": 1766330796258.824,
+      "updatedAt": "2026-10-03T20:25:02.283Z",
+      "source": "scan"
+    },
+    "rust/build-binary/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1306,
+      "hash": "e7f75991e909dbe7",
+      "size": 4573,
+      "mtimeMs": 1782948155729.43,
+      "updatedAt": "2026-10-03T20:25:02.284Z",
+      "source": "scan"
+    },
+    "rust/build-binary/README.md": {
+      "description": "Project documentation",
+      "tokens": 3856,
+      "hash": "b8a2a2bc0e7a26ce",
+      "size": 15421,
+      "mtimeMs": 1782948155729.307,
+      "updatedAt": "2026-10-03T20:25:02.284Z",
+      "source": "scan"
+    },
+    "rust/build-library/action.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1751,
+      "hash": "d247b20b272f07aa",
+      "size": 6133,
+      "mtimeMs": 1766330796259.519,
+      "updatedAt": "2026-10-03T20:25:02.284Z",
+      "source": "scan"
+    },
+    "rust/build-library/README.md": {
+      "description": "Project documentation",
+      "tokens": 3136,
+      "hash": "05d3274a83c35cb0",
+      "size": 12546,
+      "mtimeMs": 1766197135012.2014,
+      "updatedAt": "2026-10-03T20:25:02.284Z",
+      "source": "scan"
+    },
+    "rust/cache-cargo/action.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 339,
+      "hash": "7c2e5271694185f2",
+      "size": 1185,
+      "mtimeMs": 1782948155729.694,
+      "updatedAt": "2026-10-03T20:25:02.284Z",
+      "source": "scan"
+    },
+    "rust/cache-cargo/README.md": {
+      "description": "Project documentation",
+      "tokens": 2344,
+      "hash": "c5adb60d8e6b466e",
+      "size": 9430,
+      "mtimeMs": 1782948155729.591,
+      "updatedAt": "2026-10-03T20:25:02.285Z",
+      "source": "scan"
+    },
+    "rust/generate-sbom/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1433,
+      "hash": "327c71fe4634a2c8",
+      "size": 5013,
+      "mtimeMs": 1782948155729.827,
+      "updatedAt": "2026-10-03T20:25:02.285Z",
+      "source": "scan"
+    },
+    "rust/generate-sbom/README.md": {
+      "description": "Project documentation",
+      "tokens": 4028,
+      "hash": "92e5fc242956d061",
+      "size": 16154,
+      "mtimeMs": 1766586562294.5886,
+      "updatedAt": "2026-10-03T20:25:02.285Z",
+      "source": "scan"
+    },
+    "rust/lint/action.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1609,
+      "hash": "bdbcbc3a67fb33a9",
+      "size": 5646,
+      "mtimeMs": 1766330796260.2625,
+      "updatedAt": "2026-10-03T20:25:02.285Z",
+      "source": "scan"
+    },
+    "rust/lint/README.md": {
+      "description": "Project documentation",
+      "tokens": 3145,
+      "hash": "5b1890aece87e0e5",
+      "size": 12582,
+      "mtimeMs": 1766330796259.976,
+      "updatedAt": "2026-10-03T20:25:02.285Z",
+      "source": "scan"
+    },
+    "rust/package-crate/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1084,
+      "hash": "1c61e7fe3eece90b",
+      "size": 3796,
+      "mtimeMs": 1782948155730.1328,
+      "updatedAt": "2026-10-03T20:25:02.285Z",
+      "source": "scan"
+    },
+    "rust/package-crate/README.md": {
+      "description": "Project documentation",
+      "tokens": 2709,
+      "hash": "1b709d89f66d0242",
+      "size": 10863,
+      "mtimeMs": 1782948155730.0051,
+      "updatedAt": "2026-10-03T20:25:02.286Z",
+      "source": "scan"
+    },
+    "rust/publish-crate/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1223,
+      "hash": "39d847a3364ecef4",
+      "size": 4287,
+      "mtimeMs": 1782948155730.397,
+      "updatedAt": "2026-10-03T20:25:02.286Z",
+      "source": "scan"
+    },
+    "rust/publish-crate/README.md": {
+      "description": "Project documentation",
+      "tokens": 2816,
+      "hash": "bd54d0987d37baf9",
+      "size": 11305,
+      "mtimeMs": 1782948155730.2805,
+      "updatedAt": "2026-10-03T20:25:02.286Z",
+      "source": "scan"
+    },
+    "rust/security-scan/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 640,
+      "hash": "759635965cc8b23d",
+      "size": 2239,
+      "mtimeMs": 1782948155730.5122,
+      "updatedAt": "2026-10-03T20:25:02.286Z",
+      "source": "scan"
+    },
+    "rust/security-scan/README.md": {
+      "description": "Project documentation",
+      "tokens": 2523,
+      "hash": "d37ada2896aac369",
+      "size": 10092,
+      "mtimeMs": 1766586562295.3625,
+      "updatedAt": "2026-10-03T20:25:02.286Z",
+      "source": "scan"
+    },
+    "rust/setup-rust-build/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 682,
+      "hash": "c2dacd1b86c5f1a9",
+      "size": 2387,
+      "mtimeMs": 1782948155730.6267,
+      "updatedAt": "2026-10-03T20:25:02.286Z",
+      "source": "scan"
+    },
+    "rust/setup-rust-build/README.md": {
+      "description": "Project documentation",
+      "tokens": 2512,
+      "hash": "8ad244705da3275c",
+      "size": 10048,
+      "mtimeMs": 1766962108871.64,
+      "updatedAt": "2026-10-03T20:25:02.287Z",
+      "source": "scan"
+    },
+    "rust/verify-toolchain/action.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1404,
+      "hash": "8658d6c51ae360bb",
+      "size": 4932,
+      "mtimeMs": 1766330796261.5955,
+      "updatedAt": "2026-10-03T20:25:02.287Z",
+      "source": "scan"
+    },
+    "rust/verify-toolchain/README.md": {
+      "description": "Project documentation",
+      "tokens": 2774,
+      "hash": "ff9a3ccadf122b64",
+      "size": 11110,
+      "mtimeMs": 1766330796261.2056,
+      "updatedAt": "2026-10-03T20:25:02.287Z",
+      "source": "scan"
+    },
+    "security/cosign-sign/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1122,
+      "hash": "f43f508d58097271",
+      "size": 3935,
+      "mtimeMs": 1782948155730.7405,
+      "updatedAt": "2026-10-03T20:25:02.287Z",
+      "source": "scan"
+    },
+    "security/cosign-sign/README.md": {
+      "description": "Project documentation",
+      "tokens": 3449,
+      "hash": "3c858a2b5568cc48",
+      "size": 13798,
+      "mtimeMs": 1766118968792.6514,
+      "updatedAt": "2026-10-03T20:25:02.287Z",
+      "source": "scan"
+    },
+    "security/license-check/action.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1848,
+      "hash": "b302c613e1c360f7",
+      "size": 6962,
+      "mtimeMs": 1766119566167.3772,
+      "updatedAt": "2026-10-03T20:25:02.287Z",
+      "source": "scan"
+    },
+    "security/license-check/README.md": {
+      "description": "Project documentation",
+      "tokens": 4315,
+      "hash": "1d408963f137cbe9",
+      "size": 17273,
+      "mtimeMs": 1766119724547.5344,
+      "updatedAt": "2026-10-03T20:25:02.288Z",
+      "source": "scan"
+    },
+    "security/trivy-scan/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 933,
+      "hash": "88500e843d18116c",
+      "size": 3263,
+      "mtimeMs": 1782948155730.9927,
+      "updatedAt": "2026-10-03T20:25:02.288Z",
+      "source": "scan"
+    },
+    "security/trivy-scan/README.md": {
+      "description": "Project documentation",
+      "tokens": 3287,
+      "hash": "a2b2379976b8bb71",
+      "size": 13145,
+      "mtimeMs": 1782948155730.8743,
+      "updatedAt": "2026-10-03T20:25:02.288Z",
+      "source": "scan"
+    },
+    "security/verify-signed-commits/action.yaml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1052,
+      "hash": "a5e81a400289d39b",
+      "size": 3688,
+      "mtimeMs": 1766118998939.8027,
+      "updatedAt": "2026-10-03T20:25:02.288Z",
+      "source": "scan"
+    },
+    "security/verify-signed-commits/README.md": {
+      "description": "Project documentation",
+      "tokens": 3628,
+      "hash": "63472d25069ef2f2",
+      "size": 14535,
+      "mtimeMs": 1766119069393.7017,
+      "updatedAt": "2026-10-03T20:25:02.288Z",
+      "source": "scan"
+    },
+    "versioning/extract-version/action.yml": {
+      "description": "SPDX-License-Identifier: MIT",
+      "tokens": 1092,
+      "hash": "4a151885a667a4df",
+      "size": 3821,
+      "mtimeMs": 1773919224025.4333,
+      "updatedAt": "2026-10-03T20:25:02.288Z",
+      "source": "scan"
+    },
+    "versioning/extract-version/README.md": {
+      "description": "Project documentation",
+      "tokens": 4453,
+      "hash": "62084504e15ca6f7",
+      "size": 17826,
+      "mtimeMs": 1773919224024.8845,
+      "updatedAt": "2026-10-03T20:25:02.289Z",
+      "source": "scan"
+    },
+    ".claude/rules/no-real-infrastructure.md": {
+      "description": "Never Commit Real Infrastructure Identifiers or Personal Data",
+      "tokens": 1132,
+      "hash": "49bcf9d40b013ed2",
+      "size": 4530,
+      "mtimeMs": 1791059296469.5054,
+      "updatedAt": "2026-10-03T20:28:16.516Z",
+      "source": "hook"
+    }
+  },
+  "preamble": [
+    "> Project structure index. Auto-maintained by OpenWolf hooks and daemon.",
+    "> Run `openwolf scan` to generate, or wait for the first Claude Code session.",
+    "> Status: Pending initial scan"
+  ]
+}

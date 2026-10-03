@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **rust/generate-sbom** - The `package` input passed `--package`, which
+  cargo-cyclonedx 0.5.x rejects; it now resolves the package's manifest with
+  `cargo metadata` and passes `--manifest-path`. Inputs reach the generate
+  step through `env` instead of being interpolated into the script, and
+  `cargo-cyclonedx` is installed with `--locked`.
+
+### Added
+- **rust/generate-sbom** - `spec-version` input (CycloneDX 1.3, 1.4 or 1.5)
+  and `extra-args` input passed through to `cargo cyclonedx`.
+
 ### Security
 - **Supply-chain hardening** - Pinned every third-party GitHub Action to a full
   commit SHA (with a trailing `# vX.Y.Z` comment) across all workflows and
