@@ -96,6 +96,19 @@ A composite GitHub Action that generates Software Bill of Materials (SBOM) for R
     format: json
 ```
 
+### CycloneDX 1.5 for one workspace package
+
+```yaml
+- name: Generate SBOM
+  uses: firestoned/github-actions/rust/generate-sbom@v1.3.8
+  with:
+    package: my-binary
+    target: x86_64-unknown-linux-gnu
+    spec-version: '1.5'
+    cyclonedx-version: '0.5.9'
+# SBOM: crates/my-binary/my-binary.cdx.json
+```
+
 ### Complete Workflow with Upload
 
 ```yaml
@@ -140,8 +153,10 @@ jobs:
 | `cyclonedx-version` | Version of `cargo-cyclonedx` to use | No | `0.5.7` |
 | `describe` | What to describe: `crate` (entire crate with targets as subcomponents), `binaries` (separate SBOM per binary), or `all-cargo-targets` (separate SBOM per Cargo target) | No | `crate` |
 | `target` | Rust target triple (e.g., `x86_64-unknown-linux-gnu`) | No | `''` (default target) |
-| `package` | Package to generate SBOM for (for workspaces with multiple packages) | No | `''` |
+| `package` | Workspace package to generate the SBOM for. Resolved to that package's `--manifest-path` (cargo-cyclonedx 0.5.x has no `--package`); an SBOM is still written into every member's directory, so read the one in this package's directory | No | `''` |
 | `workspace` | Generate SBOM for all workspace members | No | `false` |
+| `spec-version` | CycloneDX spec version: `1.3`, `1.4` or `1.5`. Empty keeps the tool default (`1.3`) | No | `''` |
+| `extra-args` | Additional arguments passed to `cargo cyclonedx` | No | `''` |
 
 ### Describe Mode Details
 

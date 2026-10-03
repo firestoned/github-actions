@@ -27,13 +27,27 @@ inputs:
     required: false
     default: ''
   package:
-    description: 'Package to generate SBOM for (for workspaces with multiple packages)'
+    description: >-
+      Workspace package to generate the SBOM for. cargo-cyclonedx 0.5.x has no
+      --package flag, so this is resolved to that package's --manifest-path
+      via cargo metadata. cargo-cyclonedx still writes an SBOM into every
+      workspace member's directory; take the one in this package's directory.
     required: false
     default: ''
   workspace:
     description: 'Generate SBOM for all workspace members'
     required: false
     default: 'false'
+  spec-version:
+    description: >-
+      CycloneDX specification version to emit (cargo-cyclonedx 0.5.x accepts
+      1.3, 1.4 or 1.5). Empty keeps the tool default (1.3).
+    required: false
+    default: ''
+  extra-args:
+    description: 'Additional arguments to pass to cargo cyclonedx'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -55,88 +69,79 @@ runs:
     - name: Install cargo-cyclonedx
       if: steps.cache-cyclonedx.outputs.cache-hit != 'true'
       shell: bash
-      run: cargo install cargo-cyclonedx --version ${{ inputs.cyclonedx-version }}
+      env:
+        CYCLONEDX_VERSION: ${{ inputs.cyclonedx-version }}
+      run: cargo install cargo-cyclonedx --locked --version "${CYCLONEDX_VERSION}"
 
     - name: Generate SBOM
       shell: bash
+      env:
+        SBOM_FORMAT: ${{ inputs.format }}
+        SBOM_DESCRIBE: ${{ inputs.describe }}
+        SBOM_TARGET: ${{ inputs.target }}
+        SBOM_PACKAGE: ${{ inputs.package }}
+        SBOM_WORKSPACE: ${{ inputs.workspace }}
+        SBOM_SPEC_VERSION: ${{ inputs.spec-version }}
+        SBOM_EXTRA_ARGS: ${{ inputs.extra-args }}
       run: |
-        # Build base command
-        BASE_CMD="cargo cyclonedx"
+        set -euo pipefail
+        # Inputs arrive through env, never interpolated into the script.
+        args=(--all --describe "${SBOM_DESCRIBE}")
 
-        # Add package or workspace flags
-        # Note: cargo-cyclonedx 0.5.7 doesn't have --workspace flag
-        # Use --all for workspace-wide generation
-        if [ "${{ inputs.workspace }}" = "true" ]; then
-          BASE_CMD="$BASE_CMD --all"
-          echo "Generating SBOM for entire workspace (using --all)"
-        elif [ -n "${{ inputs.package }}" ]; then
-          BASE_CMD="$BASE_CMD --package ${{ inputs.package }}"
-          echo "Generating SBOM for package: ${{ inputs.package }}"
+        if [ "${SBOM_WORKSPACE}" != "true" ] && [ -n "${SBOM_PACKAGE}" ]; then
+          # cargo-cyclonedx 0.5.x has no --package: point it at the package's
+          # manifest instead.
+          manifest=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r --arg pkg "${SBOM_PACKAGE}" \
+                '.packages[] | select(.name == $pkg) | .manifest_path')
+          if [ -z "${manifest}" ]; then
+            echo "Error: package '${SBOM_PACKAGE}' is not in this workspace"
+            exit 1
+          fi
+          args+=(--manifest-path "${manifest}")
+          echo "Generating SBOM for package: ${SBOM_PACKAGE} (${manifest})"
         else
-          BASE_CMD="$BASE_CMD --all"
-          echo "Generating SBOM for current crate"
+          echo "Generating SBOM for the workspace / current crate"
         fi
 
-        # Add target if specified
-        if [ -n "${{ inputs.target }}" ]; then
-          BASE_CMD="$BASE_CMD --target ${{ inputs.target }}"
-          echo "Target: ${{ inputs.target }}"
+        if [ -n "${SBOM_TARGET}" ]; then
+          args+=(--target "${SBOM_TARGET}")
+          echo "Target: ${SBOM_TARGET}"
         fi
 
-        # Add describe option
-        BASE_CMD="$BASE_CMD --describe ${{ inputs.describe }}"
-        echo "Describe mode: ${{ inputs.describe }}"
+        if [ -n "${SBOM_SPEC_VERSION}" ]; then
+          args+=(--spec-version "${SBOM_SPEC_VERSION}")
+          echo "CycloneDX spec version: ${SBOM_SPEC_VERSION}"
+        fi
 
-        # Generate JSON if requested
-        if [ "${{ inputs.format }}" = "json" ] || [ "${{ inputs.format }}" = "both" ]; then
+        if [ -n "${SBOM_EXTRA_ARGS}" ]; then
+          # Word-split on purpose: extra-args is a list of flags.
+          read -r -a extra <<< "${SBOM_EXTRA_ARGS}"
+          args+=("${extra[@]}")
+        fi
+
+        echo "Describe mode: ${SBOM_DESCRIBE}"
+
+        if [ "${SBOM_FORMAT}" = "json" ] || [ "${SBOM_FORMAT}" = "both" ]; then
           echo "Generating SBOM in JSON format..."
-          $BASE_CMD --format json
+          cargo cyclonedx "${args[@]}" --format json
         fi
 
-        # Generate XML if requested
-        if [ "${{ inputs.format }}" = "xml" ] || [ "${{ inputs.format }}" = "both" ]; then
+        if [ "${SBOM_FORMAT}" = "xml" ] || [ "${SBOM_FORMAT}" = "both" ]; then
           echo "Generating SBOM in XML format..."
-          $BASE_CMD --format xml
+          cargo cyclonedx "${args[@]}" --format xml
         fi
 
-        # List generated files for verification
+        # cargo-cyclonedx writes <crate>.cdx.<fmt> into each package directory
+        # (the repo root for a single crate).
         echo ""
         echo "Generated SBOM files:"
+        find . -name "*.cdx.*" -not -path "*/target/*" -not -path "*/.git/*" -type f \
+          -exec ls -lh {} \;
 
-        # Check root directory
-        if compgen -G "*.cdx.*" > /dev/null 2>&1; then
-          echo "Root directory SBOMs:"
-          for file in *.cdx.*; do
-            ls -lh "$file"
-          done
-        fi
-
-        # Check each crate directory (for workspace with describe=crate)
-        # cargo-cyclonedx generates SBOMs in each crate's directory
-        if [ "${{ inputs.workspace }}" = "true" ] || [ -n "${{ inputs.package }}" ]; then
-          echo ""
-          echo "Searching for SBOMs in workspace crates..."
-          # Find all Cargo.toml files (excluding target dirs and root if workspace)
-          find . -name "Cargo.toml" -not -path "*/target/*" -not -path "*/.git/*" | while read cargo_file; do
-            crate_dir=$(dirname "$cargo_file")
-            # Check if SBOMs exist in this directory before trying to list them
-            if compgen -G "$crate_dir/*.cdx.*" > /dev/null 2>&1; then
-              echo ""
-              echo "SBOMs in $crate_dir:"
-              for file in "$crate_dir"/*.cdx.*; do
-                ls -lh "$file"
-              done
-            fi
-          done
-        fi
-
-        # Summary count
-        echo ""
-        total_sboms=$(find . -name "*.cdx.*" -not -path "*/target/*" -not -path "*/.git/*" -type f 2>/dev/null | wc -l | tr -d ' ')
-        echo "Total SBOMs generated: $total_sboms"
-
-        # Verify at least one SBOM was generated
-        if [ "$total_sboms" -eq 0 ]; then
+        total_sboms=$(find . -name "*.cdx.*" -not -path "*/target/*" -not -path "*/.git/*" -type f | wc -l | tr -d ' ')
+        echo "Total SBOMs generated: ${total_sboms}"
+        if [ "${total_sboms}" -eq 0 ]; then
           echo "Error: No SBOM files were generated"
           exit 1
         fi
