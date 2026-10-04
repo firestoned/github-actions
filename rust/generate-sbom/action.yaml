@@ -62,16 +62,31 @@ runs:
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cargo/bin/cargo-cyclonedx
+        # Exact key only: a prefix restore-key would restore another
+        # version's binary, which is never the one requested.
         key: ${{ runner.os }}-cargo-cyclonedx-${{ inputs.cyclonedx-version }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-cyclonedx-
 
     - name: Install cargo-cyclonedx
       if: steps.cache-cyclonedx.outputs.cache-hit != 'true'
       shell: bash
       env:
         CYCLONEDX_VERSION: ${{ inputs.cyclonedx-version }}
-      run: cargo install cargo-cyclonedx --locked --version "${CYCLONEDX_VERSION}"
+      # --force replaces any binary already in ~/.cargo/bin (for example one
+      # restored by a broader cargo cache).
+      run: cargo install cargo-cyclonedx --locked --force --version "${CYCLONEDX_VERSION}"
+
+    - name: Verify cargo-cyclonedx version
+      shell: bash
+      env:
+        CYCLONEDX_VERSION: ${{ inputs.cyclonedx-version }}
+      run: |
+        set -euo pipefail
+        installed=$(cargo cyclonedx --version | awk '{print $NF}')
+        echo "cargo-cyclonedx ${installed}"
+        if [ "${installed}" != "${CYCLONEDX_VERSION}" ]; then
+          echo "Error: cargo-cyclonedx ${installed} is installed, ${CYCLONEDX_VERSION} was requested"
+          exit 1
+        fi
 
     - name: Generate SBOM
       shell: bash
