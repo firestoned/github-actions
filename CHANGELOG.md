@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **rust/generate-sbom** - The cargo-cyclonedx cache had a prefix
+  `restore-keys`, so asking for a new version restored the previous
+  version's binary and `cargo install` then failed with "binary
+  `cargo-cyclonedx` already exists in destination". The cache now matches
+  the exact version only, the install uses `--force`, and a new step fails
+  if the installed version differs from `cyclonedx-version`.
+
+### Fixed
 - **rust/generate-sbom** - The `package` input passed `--package`, which
   cargo-cyclonedx 0.5.x rejects; it now resolves the package's manifest with
   `cargo metadata` and passes `--manifest-path`. Inputs reach the generate
