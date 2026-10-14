@@ -1,26 +1,47 @@
 # Cache Cargo Dependencies
 
-**Caches Cargo registry, index, and build artifacts for faster Rust builds**
+**Caches the cargo registry, git checkouts and compiled dependencies for Rust
+builds, keyed per job, toolchain and architecture, and pruned before saving.**
 
-This action caches three critical components of the Rust/Cargo build process:
-1. **Cargo registry** (`~/.cargo/registry`) - Downloaded crate files
-2. **Cargo index** (`~/.cargo/git`) - Git index for crates.io
-3. **Build artifacts** (`target/`) - Compiled dependencies and incremental builds
+This action is a thin, opinionated wrapper around
+[`Swatinem/rust-cache`](https://github.com/Swatinem/rust-cache), pinned to the
+same release that [`rust/setup-rust-build`](../setup-rust-build/README.md)
+uses. It caches:
+
+1. **Cargo registry** (`~/.cargo/registry`): downloaded `.crate` archives and
+   the sparse index.
+2. **Cargo git checkouts** (`~/.cargo/git`): dependencies sourced from git.
+3. **Compiled dependencies** in `target/`: the `.rlib`, `.rmeta` and build
+   script outputs of your **dependencies**, not of your own workspace crates.
+4. **Installed cargo binaries** (`~/.cargo/bin`): tools installed with
+   `cargo install` during the job, such as `cargo-cyclonedx`.
 
 ## Features
 
-- ✅ **Zero configuration** - Works out of the box for any Rust project
-- ✅ **Multi-OS support** - Linux, macOS, Windows
-- ✅ **Intelligent caching** - Uses `Cargo.lock` hash for cache keys
-- ✅ **Incremental builds** - Caches build artifacts to speed up subsequent builds
-- ✅ **Fallback keys** - Uses restore-keys for partial cache hits
+- ✅ **No required inputs**: existing `uses:` lines keep working unchanged
+- ✅ **Per-job keys**: a clippy job, a test job and a release build no longer
+  overwrite each other's `target/`
+- ✅ **Toolchain and architecture aware**: the key includes `rustc -vV`, so a
+  new stable release or an ARM64 runner gets its own entry
+- ✅ **Pruned before saving**: workspace crates and stale artifacts are
+  removed, so the cache holds dependencies only and stays small
+- ✅ **Bounded fallback**: a partial restore only ever comes from the same job
+  on the same toolchain, never from a different job's leftovers
+- ✅ **Quota control**: `save-if` lets pull requests restore without saving
+- ✅ **Fails loudly** when no toolchain is installed, instead of caching under
+  a meaningless key
 
 ## Usage
 
 ### Basic Usage
 
+The toolchain must be installed **before** this action, because the cache key
+is derived from `rustc -vV`.
+
 ```yaml
 - uses: actions/checkout@v4
+
+- uses: dtolnay/rust-toolchain@stable
 
 - uses: firestoned/github-actions/rust/cache-cargo@v1
 
@@ -29,6 +50,9 @@ This action caches three critical components of the Rust/Cargo build process:
 ```
 
 ### Complete CI Workflow
+
+Each job gets its own cache automatically. Nothing needs to be configured to
+keep `clippy`, `test` and `build` apart.
 
 ```yaml
 name: Rust CI
@@ -40,257 +64,299 @@ on:
     branches: [main]
 
 jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: firestoned/github-actions/rust/cache-cargo@v1
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo clippy --all-targets -- -D warnings
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: firestoned/github-actions/rust/cache-cargo@v1
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo test
+
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Cache Cargo dependencies
-      - uses: firestoned/github-actions/rust/cache-cargo@v1
-
-      # Install Rust toolchain
       - uses: dtolnay/rust-toolchain@stable
-
-      # Build project
-      - name: Build
-        run: cargo build --release
-
-      # Run tests
-      - name: Test
-        run: cargo test --all-features
+      - uses: firestoned/github-actions/rust/cache-cargo@v1
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo build --release
 ```
 
 ### Multi-Platform Builds
+
+The key includes the host triple reported by `rustc -vV`, so x86_64 and ARM64
+runners never share an entry even when they run the same job id.
 
 ```yaml
 jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-
-      # Cache is OS-specific automatically
-      - uses: firestoned/github-actions/rust/cache-cargo@v1
-
       - uses: dtolnay/rust-toolchain@stable
-
+      - uses: firestoned/github-actions/rust/cache-cargo@v1
       - run: cargo build --release
 ```
 
-## What Gets Cached
+### Matrix Over Profiles or Targets on One Runner
 
-### 1. Cargo Registry (`~/.cargo/registry`)
+When one job id builds different things on the same runner, add `key` so the
+matrix legs do not overwrite each other:
 
-Downloaded crate archives. This is the largest cache component and provides the most significant speed improvement.
+```yaml
+jobs:
+  build:
+    strategy:
+      matrix:
+        target: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: firestoned/github-actions/rust/cache-cargo@v1
+        with:
+          key: ${{ matrix.target }}
+      - run: cargo build --release --target ${{ matrix.target }}
+```
 
-**Cache key:** `${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}`
+### Sharing One Cache Across Jobs
 
-### 2. Cargo Git Index (`~/.cargo/git`)
-
-Git repositories for crates.io and other registries.
-
-**Cache key:** `${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}`
-
-### 3. Build Artifacts (`target/`)
-
-Compiled dependencies and incremental compilation artifacts.
-
-**Cache key:** `${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}`
-
-## Cache Invalidation
-
-The cache is automatically invalidated when:
-- `Cargo.lock` changes (different hash)
-- Operating system changes (cache keys include `runner.os`)
-- Dependencies are added/removed/updated
-
-## Performance Impact
-
-**Typical build time improvements:**
-
-| Scenario | Without Cache | With Cache | Improvement |
-|----------|---------------|------------|-------------|
-| Fresh build | ~5-10 min | ~5-10 min | 0% (first run) |
-| Rebuild (no changes) | ~5-10 min | ~30-60 sec | **80-90%** |
-| Rebuild (code changes) | ~5-10 min | ~1-2 min | **60-80%** |
-| Rebuild (dependency changes) | ~5-10 min | ~2-4 min | **40-60%** |
-
-## Advanced Usage
-
-### Custom Cache Keys
-
-If you need additional cache invalidation (e.g., for build configuration):
+`shared-key` replaces the per-job key. Use it only for jobs that compile
+**exactly** the same profile, features and targets; otherwise they evict each
+other, which is the problem this action's per-job default exists to prevent.
 
 ```yaml
 - uses: firestoned/github-actions/rust/cache-cargo@v1
-
-# Add your own cache for custom scenarios
-- uses: actions/cache@v4
   with:
-    path: target
-    key: ${{ runner.os }}-custom-${{ hashFiles('build-config.toml') }}
+    shared-key: debug-tests
 ```
 
-### Workspace Projects
-
-Works automatically with Cargo workspaces:
-
-```yaml
-# Caches all workspace members automatically
-- uses: firestoned/github-actions/rust/cache-cargo@v1
-
-- run: cargo build --workspace
-```
-
-### Cross-Compilation
-
-Combine with multi-target builds:
+### Workspace Not at the Repository Root
 
 ```yaml
 - uses: firestoned/github-actions/rust/cache-cargo@v1
-
-- uses: dtolnay/rust-toolchain@stable
   with:
-    targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
-
-- run: cargo build --target x86_64-unknown-linux-gnu
-- run: cargo build --target aarch64-unknown-linux-gnu
+    workspaces: |
+      crates/server -> target
+      tools/xtask -> target
 ```
-
-## Troubleshooting
-
-### Cache Miss on Every Run
-
-**Problem:** Cache is not being restored
-
-**Solution:** Ensure `Cargo.lock` exists and is committed to the repository:
-```bash
-# Generate Cargo.lock if missing
-cargo generate-lockfile
-
-# Commit it
-git add Cargo.lock
-git commit -m "Add Cargo.lock for reproducible builds"
-```
-
-### Cache Size Limits
-
-GitHub Actions has a 10GB cache limit per repository. If you hit this limit:
-
-1. **Review cache usage:**
-   ```bash
-   gh cache list
-   ```
-
-2. **Clear old caches:**
-   ```bash
-   gh cache delete <cache-id>
-   ```
-
-3. **Consider excluding test artifacts:**
-   - This action caches the entire `target/` directory
-   - For very large projects, you may want to implement custom caching
-
-### Slow Builds Despite Cache
-
-**Problem:** Builds are still slow even with cache hits
-
-**Possible causes:**
-1. Large number of dependencies (cache restoration takes time)
-2. Incremental compilation disabled
-3. Build artifacts invalidated by environment changes
-
-**Solution:**
-```yaml
-# Enable incremental compilation explicitly
-- name: Build with incremental compilation
-  env:
-    CARGO_INCREMENTAL: 1
-  run: cargo build --release
-```
-
-## Compatibility
-
-- ✅ **Rust versions:** All versions (stable, beta, nightly)
-- ✅ **Cargo versions:** All versions
-- ✅ **Operating Systems:** Linux, macOS, Windows
-- ✅ **GitHub Actions runners:** ubuntu-latest, macos-latest, windows-latest
-- ✅ **Self-hosted runners:** Yes (with standard Cargo installation)
-
-## Best Practices
-
-1. **Always commit `Cargo.lock`** - Required for reproducible builds and effective caching
-2. **Use specific Rust versions** - Avoid cache invalidation from toolchain updates
-3. **Pin dependencies** - Use exact versions in `Cargo.toml` for stability
-4. **Monitor cache size** - Large caches can slow down cache restoration
-5. **Combine with Rust toolchain caching** - Use `Swatinem/rust-cache` for additional caching
-
-## Related Actions
-
-- [`rust/setup-rust-build`](../setup-rust-build/README.md) - Set up Rust toolchain with caching
-- [`rust/build-binary`](../build-binary/README.md) - Build Rust binaries
-- [`rust/security-scan`](../security-scan/README.md) - Scan dependencies for vulnerabilities
-
-## How It Works
-
-The action creates three distinct caches, each with its own key based on the operating system and the hash of all `Cargo.lock` files in the repository:
-
-1. **Cargo Registry** (`~/.cargo/registry`): Stores downloaded `.crate` archives from crates.io and other registries. Restoring this cache avoids re-downloading dependencies on every run.
-
-2. **Cargo Git Index** (`~/.cargo/git`): Stores git checkouts for crates sourced from git repositories rather than crates.io. Without this cache, cargo must clone each git-sourced dependency on every run.
-
-3. **Build Artifacts** (`target/`): Stores compiled `.rlib`, `.so`, incremental compilation fragments, and other build outputs. This is the largest component but provides the most speedup for repeated builds with code changes.
-
-### Cache Key Strategy
-
-All three cache keys follow the pattern:
-```
-${{ runner.os }}-<component>-${{ hashFiles('**/Cargo.lock') }}
-```
-
-When `Cargo.lock` changes (e.g., a dependency is added or upgraded), all three caches are invalidated and rebuilt. When only source code changes, the registry and git-index caches are still valid — only the build artifact cache needs to be partially rebuilt.
-
-Restore keys (without the lockfile hash) provide fallback partial hits when the exact key misses, allowing cargo to start from a warm state rather than a cold one.
 
 ## Inputs
 
-This action requires no inputs. Everything is inferred automatically from the environment.
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `key` | No | `''` | Extra key component added alongside the automatic job-based key. For matrix legs that share a job id and runner but build different things. |
+| `shared-key` | No | `''` | Replaces the job-based key so several jobs share one cache. Only for jobs that build identical profiles, features and targets. |
+| `save-if` | No | `'true'` | Whether to save at the end of the job. Pass `${{ github.ref == 'refs/heads/main' }}` to save only on the default branch. |
+| `cache-on-failure` | No | `'false'` | Save the cache even if the job fails. |
+| `workspaces` | No | `'. -> target'` | Newline-separated `workspace -> target` pairs. |
+| `prefix-key` | No | `'v1-cargo'` | Key prefix. Change it to discard every existing entry and start over. |
 
 ## Outputs
 
-This action produces no direct outputs. The caching is transparent — cargo commands in subsequent steps automatically benefit from restored cache entries.
+| Output | Description |
+| --- | --- |
+| `cache-hit` | `true` when an exact key match was restored, `false` otherwise (including partial restores from a fallback key). |
+
+## How It Works
+
+### Cache key
+
+The key is assembled by `rust-cache` from:
+
+```
+<prefix-key>-<job id>[-<key>]-<hash of: rustc -vV, CARGO_* and RUST* env, Cargo.toml / Cargo.lock / rust-toolchain files>
+```
+
+So a new entry is created when:
+
+- the job id changes, or `key` differs;
+- the toolchain changes: a new stable release, or a different host triple
+  (x86_64 against ARM64);
+- `Cargo.lock`, any `Cargo.toml`, `rust-toolchain(.toml)` or `.cargo/config`
+  changes;
+- a `CARGO_*`, `RUST*` or `CC`-style environment variable that affects the build
+  changes.
+
+### Restore fallback
+
+On an exact miss, the most recent entry for the **same job and toolchain** is
+restored and cargo rebuilds only what changed. A fallback never crosses jobs or
+toolchains, so a test job cannot inherit a release build's `target/`.
+
+### Pruning before save
+
+Before saving, `rust-cache` removes from `target/`:
+
+- the artifacts of your own workspace crates, which change on every commit and
+  would make every entry unique anyway;
+- dependency artifacts not used by the current build;
+- incremental compilation directories.
+
+and from `~/.cargo/registry` the extracted sources that can be recreated from
+the archives. The result is an entry that holds what is expensive to rebuild
+and nothing else.
+
+### Saving
+
+The entry is saved in the job's post step, only when:
+
+- `save-if` is `true`;
+- the job succeeded, or `cache-on-failure` is `true`;
+- the key was not an exact hit (an existing entry is never re-uploaded).
+
+## Why This Changed (v1.4.0)
+
+Up to v1.3.x, this action cached the whole `target/` directory under a single
+key per OS and `Cargo.lock` hash:
+
+```
+Linux-cargo-build-target-<Cargo.lock hash>
+```
+
+Every job in a workflow used that same key. In practice that meant:
+
+- **Jobs evicted each other.** A clippy job (check-only metadata), a test job
+  (`dev` profile with dev-dependencies), a release build, and an ARM64 build on
+  a different architecture all restored whichever `target/` was saved first.
+  `runner.os` is `Linux` on ARM64 runners too, so even the architecture did not
+  separate them.
+- **The entry only grew.** The prefix `restore-keys` carried the previous
+  entry forward on every lockfile change and nothing was ever pruned.
+- **Restores cost more than they saved.** In one consumer the entry reached
+  4.4 GB. Restoring it took 2 minutes 42 seconds, after which `cargo test`
+  still recompiled 38 crates because the cached artifacts were built for a
+  different profile and feature set. Together with the other caches it held
+  that repository at 9.85 GB of GitHub's 10 GB limit, so GitHub was evicting
+  entries least-recently-used.
+
+The interface is unchanged: no input is required, and existing `uses:` lines
+work as before. The first run after upgrading starts from an empty cache,
+because the keys are new.
+
+## Troubleshooting
+
+### `rust/cache-cargo needs a Rust toolchain installed first`
+
+The cache key is computed from `rustc -vV`. Move the toolchain step above this
+action:
+
+```yaml
+- uses: dtolnay/rust-toolchain@stable
+- uses: firestoned/github-actions/rust/cache-cargo@v1
+```
+
+### Cache Miss on Every Run
+
+1. **Is `Cargo.lock` committed?** Without it the key changes whenever
+   resolution does.
+2. **Is the toolchain floating?** `@stable` moves roughly every six weeks and
+   each release starts a new entry. Pin a version, or accept one cold run per
+   release.
+3. **Is `save-if` false for the branch that should populate it?** With
+   `save-if: ${{ github.ref == 'refs/heads/main' }}`, a pull request only reads
+   entries that a run on `main` has saved.
+4. **Has the entry been evicted?** Check with `gh cache list`. Repositories
+   share a 10 GB quota and GitHub evicts the least recently used entries above
+   it.
+
+### Builds Still Recompile Dependencies After a Hit
+
+Cargo reuses an artifact only when the profile, the feature set and the
+compiler flags all match. Common causes:
+
+- a different `RUSTFLAGS` or `CARGO_PROFILE_*` value than the run that saved
+  the entry (both are part of the key, so this usually shows as a miss rather
+  than a hit);
+- `--all-features` in one job and default features in another sharing a
+  `shared-key`. Give them separate keys.
+
+### Cache Size Limits
+
+```bash
+# Show entries, largest first
+gh cache list --sort size_in_bytes --order desc
+
+# Delete an entry
+gh cache delete <key-or-id>
+```
+
+Saving only on the default branch is usually the biggest single reduction.
+
+## Migrating From v1.3.x
+
+No workflow change is required. Recommended follow-ups:
+
+1. **Make sure the toolchain step comes first.** v1.3.x did not need it;
+   v1.4.0 fails fast without it.
+2. **Add `save-if` for the default branch** to stop pull requests spending the
+   quota.
+3. **Delete the old entries once**, so they stop counting against the quota:
+
+   ```bash
+   gh cache list --key Linux-cargo-build-target- --json id --jq '.[].id' \
+     | xargs -n1 gh cache delete
+   gh cache list --key Linux-cargo-registry- --json id --jq '.[].id' \
+     | xargs -n1 gh cache delete
+   gh cache list --key Linux-cargo-git- --json id --jq '.[].id' \
+     | xargs -n1 gh cache delete
+   ```
+
+4. **Remove `needs:` edges that only existed to share a cache.** Jobs no
+   longer share `target/`, so a test job does not gain anything by waiting for
+   a build job.
 
 ## Compatibility
 
-- **Rust versions:** All versions (stable, beta, nightly)
-- **Cargo versions:** All versions
-- **Operating Systems:** Linux, macOS, Windows
-- **GitHub Actions runners:** ubuntu-latest, macos-latest, windows-latest
-- **Self-hosted runners:** Yes (requires standard Cargo installation)
-- **Workspaces:** Yes, automatically caches all members
+- **Rust versions:** stable, beta, nightly
+- **Operating systems:** Linux, macOS, Windows
+- **Runners:** GitHub-hosted (x86_64 and ARM64) and self-hosted
+- **Workspaces:** yes, including several workspaces via `workspaces`
+- **Cross-compilation:** yes; the target directory layout under `target/<triple>/`
+  is cached and pruned like the host one
 
-## Comparison with Swatinem/rust-cache
+## Comparison With Using `Swatinem/rust-cache` Directly
 
-| Feature | `rust/cache-cargo` | `Swatinem/rust-cache` |
-|---------|-------------------|----------------------|
-| Registry cache | ✅ | ✅ |
-| Git index cache | ✅ | ✅ |
-| Build artifacts | ✅ | ✅ |
-| Automatic target cleanup | ❌ | ✅ |
-| Cross-compilation aware | ❌ | ✅ |
-| Zero configuration | ✅ | ✅ |
+| | `rust/cache-cargo` | `Swatinem/rust-cache` |
+| --- | --- | --- |
+| Pinned to a reviewed SHA | ✅ maintained here | you pin it |
+| Fails without a toolchain | ✅ | ❌ (keys on an empty `rustc -vV`) |
+| Step summary | ✅ | ❌ |
+| Per-job keys, pruning, arch awareness | ✅ (from rust-cache) | ✅ |
+| Every rust-cache input | a curated subset | ✅ |
 
-For simple projects, `rust/cache-cargo` is sufficient. For complex multi-target or cross-compilation workflows, consider using `Swatinem/rust-cache` directly via the [`rust/setup-rust-build`](../setup-rust-build/README.md) action which includes it by default.
+Use this action to keep the pin and the defaults in one place across
+repositories. If you need an input it does not expose, open an issue rather than
+inlining `Swatinem/rust-cache` in a consumer.
 
 ## Related Actions
 
-- [`rust/setup-rust-build`](../setup-rust-build/README.md) — Set up Rust toolchain with caching (includes `Swatinem/rust-cache`)
-- [`rust/build-binary`](../build-binary/README.md) — Build Rust binaries
-- [`rust/build-library`](../build-library/README.md) — Build Rust libraries
-- [`rust/security-scan`](../security-scan/README.md) — Scan dependencies for vulnerabilities
+- [`rust/setup-rust-build`](../setup-rust-build/README.md): toolchain, cache
+  and `cross` setup for multi-architecture builds
+- [`rust/build-binary`](../build-binary/README.md): build Rust binaries
+- [`rust/build-library`](../build-library/README.md): build Rust libraries
+- [`rust/security-scan`](../security-scan/README.md): scan dependencies for
+  vulnerabilities
 
 ## License
 
@@ -298,4 +364,5 @@ MIT License - see [LICENSE](../../LICENSE) for details.
 
 ## Contributing
 
-Contributions welcome! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
+Contributions welcome! Please see [CONTRIBUTING.md](../../CONTRIBUTING.md) for
+guidelines.

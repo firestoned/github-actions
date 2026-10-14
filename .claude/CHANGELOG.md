@@ -1,3 +1,32 @@
+## [2026-10-13 21:10] - rust/cache-cargo: rebuild on Swatinem/rust-cache with per-job keys
+
+**Author:** Erick Bourgeois
+
+### Changed
+- `rust/cache-cargo/action.yml`: wraps `Swatinem/rust-cache` v2.9.1 (pinned SHA,
+  same as `rust/setup-rust-build`); new optional inputs `key`, `shared-key`,
+  `save-if`, `cache-on-failure`, `workspaces`, `prefix-key`; `cache-hit` output;
+  toolchain precondition check; step summary.
+- `rust/cache-cargo/README.md`: rewritten for the new keying, with a migration
+  section and the measurements that motivated it.
+- `.github/workflows/pr.yml`: real tests for `rust/cache-cargo` (matrix over
+  inputs, output check, build after restore, negative test without a toolchain).
+- `CHANGELOG.md`: Unreleased entry.
+
+### Why
+One shared `target/` key per OS and lockfile made unrelated jobs overwrite each
+other's caches and grew without bound. Measured in finos/5-spot: a 4.4 GB entry,
+2m42s to restore, 38 crates recompiled anyway, and the repository at 9.85 GB of
+the 10 GB quota.
+
+### Impact
+- [ ] Breaking change (no required inputs; first run after upgrade is cold)
+- [x] New feature (inputs and output)
+- [x] Bug fix (cache keying, unbounded growth, vacuous test)
+- [ ] Documentation only
+
+---
+
 ## [2026-03-19 00:00] - Initial skill setup and action upgrades
 
 **Author:** Erick Bourgeois
