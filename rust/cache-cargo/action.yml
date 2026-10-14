@@ -2,36 +2,100 @@
 # SPDX-License-Identifier: MIT
 
 name: 'Cache Cargo Dependencies'
-description: 'Caches cargo registry, index, and build artifacts for faster Rust builds'
+description: 'Caches the cargo registry, git checkouts and compiled dependencies, keyed per job, toolchain and architecture, and pruned before saving'
 author: 'Erick Bourgeois'
 
 branding:
   icon: 'package'
   color: 'orange'
 
+# Built on Swatinem/rust-cache, the same pinned release rust/setup-rust-build
+# uses. The previous implementation cached all of `target/` under one key per
+# OS and Cargo.lock hash. That key was shared by every job in a workflow, so a
+# clippy job, a release build, a test job and an ARM64 build all restored
+# whichever `target/` happened to be saved first, and the prefix restore-key
+# carried every old artifact forward forever. In one consumer the entry reached
+# 4.4 GB and took longer to restore than the build it was meant to speed up.
+#
+# rust-cache fixes the three causes: the key includes the job id, the rustc
+# version and host triple, and a hash of the Cargo manifests; the restore
+# fallback stays within that job; and workspace crates and stale artifacts
+# are removed from `target/` before saving, so only dependencies are kept.
+#
+# The toolchain must be installed BEFORE this action: the key is derived from
+# `rustc -vV`.
+
+inputs:
+  key:
+    description: 'Extra key component added alongside the automatic job-based key, for jobs that share a job id but build different things (for example a matrix over targets or profiles)'
+    required: false
+    default: ''
+  shared-key:
+    description: 'Replaces the automatic job-based key so several jobs share one cache. Only use it for jobs that compile the same profile, features and targets, or they will evict each other'
+    required: false
+    default: ''
+  save-if:
+    description: 'Whether to save the cache at the end of the job. A common choice is saving only on the default branch (pass the expression github.ref == refs/heads/main from the calling workflow), so pull requests read the cache without spending the repository quota'
+    required: false
+    default: 'true'
+  cache-on-failure:
+    description: 'Save the cache even when the job fails'
+    required: false
+    default: 'false'
+  workspaces:
+    description: 'Newline-separated `workspace -> target` pairs, for repositories whose Cargo workspace is not at the root'
+    required: false
+    default: '. -> target'
+  prefix-key:
+    description: 'Cache key prefix. Change it to discard every existing entry and start over'
+    required: false
+    default: 'v1-cargo'
+
+outputs:
+  cache-hit:
+    description: 'Whether an exact cache match was restored'
+    value: ${{ steps.rust-cache.outputs.cache-hit }}
+
 runs:
   using: composite
   steps:
-    - name: Cache cargo registry
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-registry-
+    - name: Verify a Rust toolchain is installed
+      shell: bash
+      run: |
+        set -euo pipefail
+        if ! command -v rustc >/dev/null 2>&1; then
+          echo "::error::rust/cache-cargo needs a Rust toolchain installed first: its cache key is derived from 'rustc -vV'. Run dtolnay/rust-toolchain (or rustup) before this action."
+          exit 1
+        fi
+        rustc -vV
 
-    - name: Cache cargo index
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+    - name: Cache cargo registry, git checkouts and dependencies
+      id: rust-cache
+      uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-git-
+        prefix-key: ${{ inputs.prefix-key }}
+        key: ${{ inputs.key }}
+        shared-key: ${{ inputs.shared-key }}
+        save-if: ${{ inputs.save-if }}
+        cache-on-failure: ${{ inputs.cache-on-failure }}
+        workspaces: ${{ inputs.workspaces }}
 
-    - name: Cache cargo build
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-build-target-
+    - name: Summary
+      shell: bash
+      env:
+        CACHE_HIT: ${{ steps.rust-cache.outputs.cache-hit }}
+        SAVE_IF: ${{ inputs.save-if }}
+        KEY: ${{ inputs.key }}
+        SHARED_KEY: ${{ inputs.shared-key }}
+      run: |
+        set -euo pipefail
+        {
+          echo "### rust/cache-cargo"
+          echo ""
+          echo "| Setting | Value |"
+          echo "| --- | --- |"
+          echo "| Exact cache hit | \`${CACHE_HIT:-false}\` |"
+          echo "| Save at end of job | \`${SAVE_IF}\` |"
+          echo "| Extra key | \`${KEY:-none}\` |"
+          echo "| Shared key | \`${SHARED_KEY:-none (per job)}\` |"
+        } >> "$GITHUB_STEP_SUMMARY"

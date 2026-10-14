@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **rust/cache-cargo** - Rebuilt on `Swatinem/rust-cache` v2.9.1 (the release
+  `rust/setup-rust-build` already pins). The old implementation cached all of
+  `target/` under one key per OS and `Cargo.lock` hash, shared by every job in
+  a workflow and by x86_64 and ARM64 runners alike, with a prefix restore-key
+  that carried every old artifact forward. In one consumer the entry reached
+  4.4 GB, took 2m42s to restore, and `cargo test` still recompiled 38 crates
+  because the cached artifacts came from a different job's profile. Keys now
+  include the job id, `rustc -vV` (toolchain and host triple) and the Cargo
+  manifests; fallbacks stay within the same job and toolchain; and `target/`
+  is pruned to dependencies before saving. No input is required, so existing
+  `uses:` lines keep working; the first run after upgrading is cold.
+
+### Added
+- **rust/cache-cargo** - Optional `key`, `shared-key`, `save-if`,
+  `cache-on-failure`, `workspaces` and `prefix-key` inputs, a `cache-hit`
+  output, and a step summary. The action now fails fast if no Rust toolchain
+  is installed, since the key is derived from `rustc -vV`.
+
+### Fixed
+- **pr.yml** - The `rust/cache-cargo` test built a project in a subdirectory,
+  cached a root `target/` that did not exist, and asserted nothing. It now
+  points `workspaces` at the project, checks the `cache-hit` output, builds
+  after the restore, and has a negative test proving the action fails without a
+  toolchain.
+
 ### Fixed
 - **rust/generate-sbom** - The cargo-cyclonedx cache had a prefix
   `restore-keys`, so asking for a new version restored the previous

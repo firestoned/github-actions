@@ -10,24 +10,77 @@ on:
 
 jobs:
   test-rust-cache:
-    name: Test rust/cache-cargo
+    name: Test rust/cache-cargo (${{ matrix.description }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - description: 'default inputs'
+            key: ''
+            save-if: 'true'
+          - description: 'extra key, restore only'
+            key: 'release'
+            save-if: 'false'
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Create test Rust project
+        run: |
+          set -euo pipefail
+          cargo init --name cache-test test-project
+          cd test-project
+          cargo add serde@1 --features derive
+
+      - name: Test cache-cargo action
+        id: cache
+        uses: ./rust/cache-cargo
+        with:
+          workspaces: test-project -> target
+          key: ${{ matrix.key }}
+          save-if: ${{ matrix.save-if }}
+
+      - name: Verify the cache-hit output is a boolean
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          case "$CACHE_HIT" in
+            true|false) echo "cache-hit=$CACHE_HIT" ;;
+            *) echo "::error::cache-hit output must be true or false, got '$CACHE_HIT'"; exit 1 ;;
+          esac
+
+      - name: Build after restore
+        working-directory: test-project
+        run: cargo build
+
+  test-rust-cache-requires-toolchain:
+    name: Test rust/cache-cargo fails without a toolchain
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Create test Rust project
+      - name: Hide the preinstalled toolchain
         run: |
-          cargo init test-project
-          cd test-project
-          echo 'serde = "1.0"' >> Cargo.toml
-          cargo build
+          set -euo pipefail
+          echo "PATH=/usr/sbin:/usr/bin:/sbin:/bin" >> "$GITHUB_ENV"
 
-      - name: Test cache-cargo action
+      - name: Run cache-cargo without rustc (must fail)
+        id: no-toolchain
+        continue-on-error: true
         uses: ./rust/cache-cargo
 
-      - name: Verify cache was created
+      - name: Verify it failed loudly
+        env:
+          OUTCOME: ${{ steps.no-toolchain.outcome }}
         run: |
-          echo "Cache should be created for Cargo registry, git index, and build artifacts"
+          set -euo pipefail
+          if [ "$OUTCOME" != "failure" ]; then
+            echo "::error::rust/cache-cargo must fail when no Rust toolchain is installed, got outcome '$OUTCOME'"
+            exit 1
+          fi
 
   test-build-library:
     name: Test rust/build-library
