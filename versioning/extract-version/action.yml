@@ -50,55 +50,72 @@ runs:
     - name: Extract version information
       id: extract
       shell: bash
+      # Every input reaches the script through the environment, never by `${{ }}` in the script:
+      # a release tag's name, a repository name or a suffix may hold shell syntax, and a value
+      # with a line break would add an output of its own choosing. Each is checked before use.
+      env:
+        GIT_SHA: ${{ github.sha }}
+        RUN_NUMBER: ${{ github.run_number }}
+        IMAGE_REPOSITORY: ${{ inputs.repository }}
+        IMAGE_TAG_SUFFIX: ${{ inputs.image-tag-suffix }}
+        WORKFLOW_TYPE: ${{ inputs.workflow-type }}
+        RELEASE_TAG: ${{ inputs.release-tag }}
+        PR_NUMBER: ${{ inputs.pr-number }}
       run: |
-        # Extract short SHA (first 7 characters)
-        SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-        echo "short-sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+        set -euo pipefail
+        fail() { echo "::error::$1"; exit 1; }
 
-        IMAGE_REPOSITORY="${{ inputs.repository }}"
-        IMAGE_TAG_SUFFIX="${{ inputs.image-tag-suffix }}"
-        echo "image-repository=${IMAGE_REPOSITORY}" >> $GITHUB_OUTPUT
+        # A repository is owner/name (letters, digits, '.', '_', '-'); a suffix is empty or
+        # starts with '-' and holds what a container image tag may.
+        [[ "$IMAGE_REPOSITORY" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] \
+          || fail "repository is not owner/name: refusing it"
+        [[ -z "$IMAGE_TAG_SUFFIX" || "$IMAGE_TAG_SUFFIX" =~ ^-[A-Za-z0-9._-]{1,64}$ ]] \
+          || fail "image-tag-suffix is not empty or -<letters, digits, . _ ->: refusing it"
 
-        case "${{ inputs.workflow-type }}" in
+        SHORT_SHA="${GIT_SHA:0:7}"
+        {
+          echo "short-sha=${SHORT_SHA}"
+          echo "image-repository=${IMAGE_REPOSITORY}"
+        } >> "$GITHUB_OUTPUT"
+
+        case "$WORKFLOW_TYPE" in
           release)
-            # Release workflow: extract from release tag
-            # Tag format: v0.2.0 (no date)
-            TAG_NAME="${{ inputs.release-tag }}"
+            # Release workflow: the version is the tag without its leading v.
+            # Tag format: v1.2.3, with an optional -prerelease and +build.
+            [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]] \
+              || fail "release-tag is not v<major>.<minor>.<patch>[-pre][+build]: refusing it"
+            TAG_NAME="$RELEASE_TAG"
             VERSION="${TAG_NAME#v}"
-            IMAGE_TAG="${TAG_NAME}${IMAGE_TAG_SUFFIX}"
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
-            echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
-            echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-            echo "Release: version=${VERSION}, tag=${TAG_NAME}, image=${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+            # A container tag cannot hold '+': build metadata is dropped from the image tag only.
+            IMAGE_TAG="${TAG_NAME%%+*}${IMAGE_TAG_SUFFIX}"
             ;;
 
           pr)
             # PR workflow: use pr-NUMBER format
             # Tag format: pr-42
-            VERSION="pr-${{ inputs.pr-number }}"
-            TAG_NAME="pr-${{ inputs.pr-number }}"
-            IMAGE_TAG="pr-${{ inputs.pr-number }}${IMAGE_TAG_SUFFIX}"
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
-            echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
-            echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-            echo "PR: version=${VERSION}, tag=${TAG_NAME}, image=${IMAGE_REPOSITORY}:${IMAGE_TAG}"
+            [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || fail "pr-number is not a number: refusing it"
+            VERSION="pr-${PR_NUMBER}"
+            TAG_NAME="pr-${PR_NUMBER}"
+            IMAGE_TAG="pr-${PR_NUMBER}${IMAGE_TAG_SUFFIX}"
             ;;
 
           main)
             # Main branch: use main-YYYY.MM.DD format
             # Tag format: main-2025.12.17
             DATE=$(date +%Y.%m.%d)
-            VERSION="0.0.0-main.${DATE}.${{ github.run_number }}"
+            VERSION="0.0.0-main.${DATE}.${RUN_NUMBER}"
             TAG_NAME="main-${DATE}"
             IMAGE_TAG="main-${DATE}${IMAGE_TAG_SUFFIX}"
-            echo "version=${VERSION}" >> $GITHUB_OUTPUT
-            echo "tag-name=${TAG_NAME}" >> $GITHUB_OUTPUT
-            echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
-            echo "Main: version=${VERSION}, tag=${TAG_NAME}, image=${IMAGE_REPOSITORY}:${IMAGE_TAG}"
             ;;
 
           *)
-            echo "Error: Invalid workflow-type '${{ inputs.workflow-type }}'. Must be: main, pr, or release"
-            exit 1
+            fail "invalid workflow-type: must be main, pr, or release"
             ;;
         esac
+
+        {
+          echo "version=${VERSION}"
+          echo "tag-name=${TAG_NAME}"
+          echo "image-tag=${IMAGE_TAG}"
+        } >> "$GITHUB_OUTPUT"
+        echo "${WORKFLOW_TYPE}: version=${VERSION}, tag=${TAG_NAME}, image=${IMAGE_REPOSITORY}:${IMAGE_TAG}"
